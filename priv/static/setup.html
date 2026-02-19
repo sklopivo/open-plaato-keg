@@ -53,6 +53,26 @@
             <p class="help" id="connectionStatus">Loading connected kegs...</p>
           </div>
 
+          <!-- Keg Details Section -->
+          <div class="box section-box">
+            <h2 class="title is-4">Keg Details</h2>
+            
+            <div class="field">
+              <label class="label">Keg Name</label>
+              <p class="help">Give this keg a custom name</p>
+              <div class="control">
+                <div class="field has-addons">
+                  <div class="control is-expanded">
+                    <input class="input" type="text" id="kegName" placeholder="e.g., Garage Keg, Main Tap" />
+                  </div>
+                  <div class="control">
+                    <button class="button is-primary" onclick="sendKegName()">Set</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Units Section -->
           <div class="box section-box">
             <h2 class="title is-4">Units & Mode</h2>
@@ -421,6 +441,11 @@
       }
 
       function populateFormFields(data) {
+        // Keg name (stored locally as my_keg_name) - only update if not focused
+        if (data.my_keg_name) {
+          updateFieldIfNotFocused("kegName", data.my_keg_name.trim());
+        }
+        
         // Temperature offset - only update if not focused
         if (data.temperature_offset) {
           updateFieldIfNotFocused("tempOffset", data.temperature_offset);
@@ -613,6 +638,7 @@
         } else {
           // Clear form when no keg selected
           currentKegData = {};
+          document.getElementById("kegName").value = "";
           document.getElementById("tempOffset").value = "";
           document.getElementById("maxVolume").value = "";
           document.getElementById("beerStyle").value = "";
@@ -773,6 +799,13 @@
         const value = document.getElementById("maxVolume").value;
         if (!value) { showToast("Please enter a volume", "warning"); return; }
         sendCommand("max-keg-volume", { value });
+      }
+
+      // Keg details commands
+      function sendKegName() {
+        const value = document.getElementById("kegName").value;
+        if (!value) { showToast("Please enter a keg name", "warning"); return; }
+        sendCommand("keg-name", { value });
       }
 
       // Beer info commands

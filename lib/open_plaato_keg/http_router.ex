@@ -147,6 +147,16 @@ defmodule OpenPlaatoKeg.HttpRouter do
   # in our local database. The hardware pins (64, 67) are also updated on the keg,
   # but there is no read feedback from those pins, so we store our own copy.
 
+  post "api/kegs/:id/keg-name" do
+    keg_id = conn.params["id"]
+    %{"value" => value} = conn.body_params
+
+    # Save to our local database only (no hardware pin for this)
+    KegData.publish(keg_id, [{:my_keg_name, value}])
+
+    json_response(conn, 200, %{status: "ok", command: "keg_name", value: value})
+  end
+
   post "api/kegs/:id/beer-style" do
     keg_id = conn.params["id"]
     %{"value" => value} = conn.body_params

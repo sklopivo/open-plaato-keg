@@ -81,6 +81,9 @@
             const lastPour = parseFloat(kegData.last_pour) || 0;
             const isPouring = kegData.is_pouring && kegData.is_pouring !== "0";
 
+            // Get keg name if available
+            const kegName = kegData.my_keg_name?.trim();
+            
             // Build card title from beer style, keg date, and ABV (stored locally as my_beer_style, my_keg_date, my_abv)
             const beerStyle = kegData.my_beer_style?.trim();
             const kegDate = kegData.my_keg_date?.trim();
@@ -107,6 +110,7 @@
                     <div class="card-content">
                         <div class="media">
                             <div class="media-content">
+                                ${kegName ? `<p class="title is-4 has-text-primary" style="margin-bottom: 0.5rem;">${kegName}</p>` : ''}
                                 ${cardTitle ? `<p class="title is-5">${cardTitle}</p>` : ''}
                                 <p class="subtitle is-1">${amountLeft.toFixed(2)} ${volumeUnit}</p>
                             </div>
@@ -135,7 +139,9 @@
             });
 
         // WebSocket connection
-        const socket = new WebSocket('/ws');
+        // Use wss:// for HTTPS, ws:// for HTTP
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
 
         socket.addEventListener('open', (event) => {
             console.log('WebSocket connection opened:', event);
