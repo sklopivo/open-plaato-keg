@@ -64,6 +64,29 @@
       }
 
         const kegContainer = document.getElementById('kegContainer');
+        
+        // Store keg data for re-sorting
+        const kegDataMap = new Map();
+        
+        // Sort kegs by name (if present), then by ID
+        function sortKegs(kegs) {
+            return kegs.sort((a, b) => {
+                // Both have names - sort alphabetically by name
+                if (a.my_keg_name && b.my_keg_name) {
+                    return a.my_keg_name.localeCompare(b.my_keg_name);
+                }
+                // Only 'a' has name - 'a' comes first
+                if (a.my_keg_name && !b.my_keg_name) {
+                    return -1;
+                }
+                // Only 'b' has name - 'b' comes first
+                if (!a.my_keg_name && b.my_keg_name) {
+                    return 1;
+                }
+                // Neither has name - sort by ID
+                return a.id.localeCompare(b.id);
+            });
+        }
 
         function createKegCard(kegData) {
             const column = document.createElement('div');
@@ -122,17 +145,30 @@
             return column;
         }
 
+        // Function to render all kegs in sorted order
+        function renderKegs() {
+            kegContainer.innerHTML = '';
+            if (kegDataMap.size === 0) {
+                kegContainer.innerHTML = '<div class="column"><p class="has-text-grey">No kegs found. Connect a keg to see data here.</p></div>';
+            } else {
+                const kegsArray = Array.from(kegDataMap.values());
+                const sortedKegs = sortKegs(kegsArray);
+                sortedKegs.forEach(keg => {
+                    kegContainer.appendChild(createKegCard(keg));
+                });
+            }
+        }
+
         // Fetch initial keg data
         fetch('/api/kegs')
             .then(response => response.json())
             .then(kegs => {
-                if (kegs.length === 0) {
-                    kegContainer.innerHTML = '<div class="column"><p class="has-text-grey">No kegs found. Connect a keg to see data here.</p></div>';
-                } else {
-                    kegs.forEach(keg => {
-                        kegContainer.appendChild(createKegCard(keg));
-                    });
-                }
+                // Store all kegs in the map
+                kegs.forEach(keg => {
+                    kegDataMap.set(keg.id, keg);
+                });
+                // Render them in sorted order
+                renderKegs();
             })
             .catch(err => {
                 kegContainer.innerHTML = '<div class="column"><p class="has-text-danger">Error loading kegs: ' + err.message + '</p></div>';
@@ -149,16 +185,13 @@
 
         socket.addEventListener('message', (event) => {
             const updatedKeg = JSON.parse(event.data);
-            // Find the existing keg card and update its content
             const kegId = updatedKeg.id;
-            const existingCard = document.querySelector(`#kegContainer [data-keg-id="${kegId}"]`);
-            if (existingCard) {
-                const newCard = createKegCard(updatedKeg);
-                existingCard.innerHTML = newCard.querySelector('.card').innerHTML;
-            } else if (kegId) {
-                // New keg appeared, add it
-                kegContainer.appendChild(createKegCard(updatedKeg));
-            }
+            
+            // Update or add the keg in our map
+            kegDataMap.set(kegId, updatedKeg);
+            
+            // Re-render all kegs in sorted order
+            renderKegs();
         });
 
         socket.addEventListener('error', (error) => {
