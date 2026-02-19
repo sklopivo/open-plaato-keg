@@ -129,6 +129,16 @@ defmodule OpenPlaatoKeg.HttpRouter do
     end
   end
 
+  post "api/kegs/:id/set-empty-keg-value" do
+    keg_id = conn.params["id"]
+    %{"value" => value} = conn.body_params
+
+    case KegCommander.set_empty_keg_value(keg_id, value) do
+      :ok -> json_response(conn, 200, %{status: "ok", command: "set_empty_keg_value", value: value})
+      {:error, reason} -> json_response(conn, 503, %{error: reason})
+    end
+  end
+
   post "api/kegs/:id/max-keg-volume" do
     keg_id = conn.params["id"]
     %{"value" => value} = conn.body_params

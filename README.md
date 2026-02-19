@@ -15,18 +15,21 @@ docker run --rm -it -p 1234:1234 -p 8085:8085 ghcr.io/sklopivo/open-plaato-keg:n
 - **Multi-Architecture Docker Images** - Native support for `linux/amd64` and `linux/arm64` (Raspberry Pi 4/5, Apple Silicon, AWS Graviton)
 
 - **Keg Setup Page (`/setup.html`)** - Full-featured web UI to configure and control your keg:
+  - **Keg Details**: Set custom keg name for easy identification
   - **Units & Mode**: Switch between Metric/US units, Weight/Volume display mode
   - **Scale Sensitivity**: Adjust pour detection sensitivity (4 levels)
-  - **Calibration**: Tare scale, set empty keg weight, calibrate with known weight, temperature offset
+  - **Calibration**: Tare scale, set empty keg weight (button or specific value), calibrate with known weight, temperature offset
   - **Beer Information**: Set beer style, keg date, OG, FG, ABV calculation, max keg volume (stored locally)
   - **System Status**: View device info, WiFi signal, firmware version, chip temperature, leak detection
 
 - **Keg Command API** - New REST endpoints to send commands to connected kegs:
   - `POST /api/kegs/:id/tare` - Tare the scale
-  - `POST /api/kegs/:id/empty-keg` - Set empty keg weight
+  - `POST /api/kegs/:id/empty-keg` - Set empty keg weight (from current weight)
+  - `POST /api/kegs/:id/set-empty-keg-value` - Set specific empty keg weight value
   - `POST /api/kegs/:id/max-keg-volume` - Set max volume
   - `POST /api/kegs/:id/temperature-offset` - Adjust temperature reading
   - `POST /api/kegs/:id/calibrate-known-weight` - Calibrate with known weight
+  - `POST /api/kegs/:id/keg-name` - Set custom keg name (stored locally)
   - `POST /api/kegs/:id/beer-style` - Set beer style name
   - `POST /api/kegs/:id/date` - Set keg date
   - `POST /api/kegs/:id/og` - Set original gravity (format: 1.xxx)
