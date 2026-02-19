@@ -38,7 +38,13 @@ defmodule OpenPlaatoKeg.HttpRouter do
   end
 
   get "api/kegs" do
-    data = KegData.all()
+    connected_kegs = KegCommander.connected_kegs()
+    
+    data = 
+      KegData.all()
+      |> Enum.map(fn keg ->
+        Map.put(keg, :connected, keg.id in connected_kegs)
+      end)
 
     conn
     |> put_resp_content_type("application/json")
@@ -46,11 +52,16 @@ defmodule OpenPlaatoKeg.HttpRouter do
   end
 
   get "api/kegs/:id" do
-    case KegData.get(conn.params["id"]) do
+    keg_id = conn.params["id"]
+    
+    case KegData.get(keg_id) do
       %{} = data when map_size(data) > 0 ->
+        connected_kegs = KegCommander.connected_kegs()
+        data_with_connected = Map.put(data, :connected, keg_id in connected_kegs)
+        
         conn
         |> put_resp_content_type("application/json")
-        |> send_resp(200, Poison.encode!(data))
+        |> send_resp(200, Poison.encode!(data_with_connected))
 
       _ ->
         conn
