@@ -26,15 +26,9 @@ defmodule OpenPlaatoKeg.KegCommander do
   Returns :ok on success, {:error, reason} on failure.
   """
   def send_command(keg_id, command, value) do
-    case lookup_socket(keg_id) do
-      {:ok, socket} ->
-        encoded = encode_command(command, value)
-        Logger.info("Sending command to keg #{keg_id}: #{command} = #{value}")
-        ThousandIsland.Socket.send(socket, encoded)
-
-      {:error, reason} ->
-        Logger.warning("Failed to send command to keg #{keg_id}: #{inspect(reason)}")
-        {:error, reason}
+    case do_send(keg_id, encode_command(command, value)) do
+      :ok -> :ok
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -67,6 +61,22 @@ defmodule OpenPlaatoKeg.KegCommander do
     encode_hardware_write(pin, to_string(value))
   end
 
+  @doc """
+  Send a manual OTA command to a keg.
+
+  This sends a BLYNK_INTERNAL \"ota\" command with body
+  \"ota\\0<firmware_url>\", which the stock Plaato firmware
+  interprets as an HTTP URL to download and flash.
+
+  WARNING: Using an incompatible firmware URL can brick the device.
+  """
+  def send_internal_ota(keg_id, firmware_url) when is_binary(firmware_url) do
+    body = "ota\0" <> firmware_url
+    msg_id = :rand.uniform(65_535)
+    encoded = BlynkProtocol.encode_command(:internal, msg_id, body)
+    do_send(keg_id, encoded)
+  end
+
   # Debug commands
   def set_temperature_offset(keg_id, offset),
     do: send_command(keg_id, :temperature_offset, offset)
@@ -79,6 +89,9 @@ defmodule OpenPlaatoKeg.KegCommander do
   def tare_release(keg_id), do: send_command(keg_id, :tare, "0")
   def set_empty_keg(keg_id), do: send_command(keg_id, :empty_keg_weight, "1")
   def set_empty_keg_release(keg_id), do: send_command(keg_id, :empty_keg_weight, "0")
+
+  def set_empty_keg_weight_value(keg_id, value),
+    do: send_command(keg_id, :empty_keg_weight, value)
   def set_max_keg_volume(keg_id, volume), do: send_command(keg_id, :max_keg_volume, volume)
 
   # Monitor commands
@@ -186,5 +199,22 @@ defmodule OpenPlaatoKeg.KegCommander do
     body = Enum.join(["vr" | pins], "\0")
     msg_id = :rand.uniform(65535)
     BlynkProtocol.encode_command(:hardware_sync, msg_id, body)
+  end
+
+  @doc """
+  Sends a raw Blynk command binary to a specific keg device.
+  Intended for advanced flows like OTA where we need to use
+  non-hardware commands (e.g. BLYNK_INTERNAL).
+  """
+  defp do_send(keg_id, encoded) do
+    case lookup_socket(keg_id) do
+      {:ok, socket} ->
+        Logger.info("Sending command to keg #{keg_id}")
+        ThousandIsland.Socket.send(socket, encoded)
+
+      {:error, reason} ->
+        Logger.warning("Failed to send command to keg #{keg_id}: #{inspect(reason)}")
+        {:error, reason}
+    end
   end
 end

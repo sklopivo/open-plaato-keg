@@ -1,73 +1,14 @@
+<a href="https://www.buymeacoffee.com/LocutusOFB"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 ## What is Open Plaato Keg?
 
-Take control of your Plaato Keg! This reverse-engineered solution bypasses the Plaato cloud, keeping your keg data local and accessible even after the cloud service is discontinued.
+Take control of your Plaato Keg and Plaato Airlock! This reverse-engineered solution bypasses the Plaato cloud, keeping your device data local and accessible even after the cloud service is discontinued.
 
-## 🆕 Next Branch - New Features and Changes
-
-The `next` branch contains upcoming features that are still in development. Install using the `next` Docker tag:
-
-```bash
-docker run --rm -it -p 1234:1234 -p 8085:8085 ghcr.io/sklopivo/open-plaato-keg:next
-```
-
-### New Features
-
-- **Multi-Architecture Docker Images** - Native support for `linux/amd64` and `linux/arm64` (Raspberry Pi 4/5, Apple Silicon, AWS Graviton)
-
-- **Keg Setup Page (`/setup.html`)** - Full-featured web UI to configure and control your keg:
-  - **Units & Mode**: Switch between Metric/US units, Weight/Volume display mode
-  - **Scale Sensitivity**: Adjust pour detection sensitivity (4 levels)
-  - **Calibration**: Tare scale, set empty keg weight, calibrate with known weight, temperature offset
-  - **Beer Information**: Set beer style, keg date, OG, FG, ABV calculation, max keg volume (stored locally)
-  - **System Status**: View device info, WiFi signal, firmware version, chip temperature, leak detection
-
-- **Keg Command API** - New REST endpoints to send commands to connected kegs:
-  - `POST /api/kegs/:id/tare` - Tare the scale
-  - `POST /api/kegs/:id/empty-keg` - Set empty keg weight
-  - `POST /api/kegs/:id/max-keg-volume` - Set max volume
-  - `POST /api/kegs/:id/temperature-offset` - Adjust temperature reading
-  - `POST /api/kegs/:id/calibrate-known-weight` - Calibrate with known weight
-  - `POST /api/kegs/:id/beer-style` - Set beer style name
-  - `POST /api/kegs/:id/date` - Set keg date
-  - `POST /api/kegs/:id/og` - Set original gravity (format: 1.xxx)
-  - `POST /api/kegs/:id/fg` - Set final gravity (format: 1.xxx)
-  - `POST /api/kegs/:id/abv` - Calculate ABV from OG and FG
-  - `POST /api/kegs/:id/unit` - Set unit system (metric/us)
-  - `POST /api/kegs/:id/measure-unit` - Set measure mode (weight/volume)
-  - `POST /api/kegs/:id/keg-mode` - Set keg mode (beer/co2) *experimental*
-  - `POST /api/kegs/:id/sensitivity` - Set scale sensitivity
-  - `GET /api/kegs/connected` - List currently connected kegs
-
-- **Improved Home Page (`/index.html`)**:
-  - Real-time updates via WebSocket
-  - Shows beer style and keg date as card title
-  - Temperature badge, pouring indicator, last pour, remaining percentage
-  - Modern dark theme with amber accents
-
-- **Hardware Calibration** - Tare and calibration commands are sent directly to the keg hardware via Blynk protocol, ensuring accurate readings stored on the device itself
-
-- **Live Pouring Detection** - Real-time `is_pouring` property emitted via WebSocket, enabling instant pour notifications and UI updates
-
-- **Enhanced Data Model** - Decodes all known Plaato Keg pins:
-  - Amount left, percent remaining, last pour
-  - Temperature (keg and chip)
-  - WiFi signal strength, firmware version
-  - Leak detection, min/max temperature alerts
-
-### Changes from Master
-
-- Removed old `/config.html` page (replaced by `/setup.html`)
-- Removed client-side calibration models (now handled via keg commands)
-- Simplified data flow - raw keg data stored directly
-- Added `KegCommander` module for bi-directional keg communication
-- Added `KegSocketRegistry` to track connected keg sockets
-- Prerelease versioning for `next` branch (e.g., `0.0.9-next.1`)
-
-### Experimental Features (⚠️ Use with Caution)
-
-- **CO₂ Mode** - Switch to CO₂ monitoring mode (pins not fully decoded)
-- **Scale Sensitivity** - No read feedback from keg for current setting
-- **Beer Style/Date/OG/FG/ABV** - Stored in local database (keg doesn't echo these values back)
+Supports:
+- **Plaato Keg** — scale-based keg monitor with pour detection, temperature, and calibration
+- **Plaato Airlock** — fermentation sensor with bubble count (BPM) and temperature
+- **Generic airlocks** — any device that can POST to `/api/airlocks/:id/data`
+- **Android companion app** — native app for monitoring kegs and airlocks from your phone ([open-plaato-keg-android](https://github.com/DarkJaeger/open-plaato-keg-android))
+- **iOS companion app** — SwiftUI app for iPhone and iPad ([open-plaato-keg-ios](https://github.com/DarkJaeger/open-plaato-keg-ios))
 
 ## Why this exists?
 
@@ -92,13 +33,20 @@ This local solution decodes the Blynk protocol, giving you the freedom to connec
 ```mermaid
 graph LR
     A(Plaato Keg) --> B{open-plaato-keg};
-    B <--> C[HTTP];
+    G(Plaato Airlock) --> B;
+    B <--> C[HTTP REST API];
     B --> D[WebSocket];
     B --> E[MQTT];
-    B --> F(...);
+    B --> F[BarHelper];
+    B --> H[Grainfather];
+    B --> I[Brewfather];
+    B <--> J[Android App];
+    B <--> K[iOS App];
 ```
 
 ## Setup
+
+### Plaato Keg
 
 You need to reset your Plaato Keg to point it to your installation of `open-plaato-keg`. It is done by yellow key provided in the box, or a weak fridge magnet will also do the job.
 
@@ -129,6 +77,20 @@ or 4B. Keg can be also configured via this endpoint (simple HTTP GET request wit
 http://192.168.4.1/config?ssid=My+Wifi&pass=my_password&blynk=00000000000000000000000000000001&host=192.168.0.123&port=1234
 ```
 
+### Plaato Airlock
+
+The Plaato Airlock uses the same Blynk TCP protocol as the Keg, connecting to the same port (default: 1234). Configure it the same way as the Keg (reset, connect to hotspot, set host/port). The auth token you configure becomes the airlock's ID.
+
+`open-plaato-keg` automatically detects whether an incoming TCP connection is from a Keg or an Airlock based on the virtual pins it sends:
+
+| Virtual Pin | Property | Description |
+|---|---|---|
+| V99 | `error` | Error status |
+| V100 | `bubbles_per_min` | Cumulative bubble count (BPM derived from delta between readings) |
+| V101 | `temperature` | Fermentation temperature |
+
+Once connected, the airlock appears in the **Airlocks** section of the web UI.
+
 ## Deployment
 
 ### Docker Images
@@ -144,12 +106,14 @@ This means images work on:
 - AWS Graviton instances
 
 Image:
-* `ghcr.io/sklopivo/open-plaato-keg:latest` or tagged by semantic version  - eg. `ghcr.io/sklopivo/open-plaato-keg:x.y.z`
-
+* `ghcr.io/darkjaeger/open-plaato-keg:latest` — latest stable release
+* `ghcr.io/darkjaeger/open-plaato-keg:x.y.z` — pinned semantic version
 
 Simple run with defaults (exposing HTTP and binary listener port):
 
-* `docker run --rm -it -p 1234:1234 -p 8085:8085 ghcr.io/sklopivo/open-plaato-keg:latest`
+```bash
+docker run --rm -it -p 1234:1234 -p 8085:8085 ghcr.io/darkjaeger/open-plaato-keg:latest
+```
 
 ### Docker Compose
 
@@ -159,7 +123,7 @@ Sample docker-compose:
 version: "3.6"
 services:
   open_plaato_keg:
-    image: ghcr.io/sklopivo/open-plaato-keg:latest
+    image: ghcr.io/darkjaeger/open-plaato-keg:latest
     container_name: open_plaato_keg
     ports:
       - 1234:1234
@@ -249,6 +213,7 @@ If Docker isn't your preferred method, you can create an [Elixir Release](https:
         "buff-in": "1024"
       },
       "id": "00000000000000000000000000000001",
+      "my_label": "Basement Tap",
       "my_beer_style": "IPA",
       "my_keg_date": "12.01.2025",
       "my_og": "1.050",
@@ -274,22 +239,85 @@ Both modes can be enabled simultaneously.
 
 ## Integrations
 
-### Web Companion
+### Web UI
 
-Showcase how to interact with WebSocket and REST API.
+The web UI is served on the configured HTTP port. All pages update in real time via WebSocket.
 
-### `/index.html`
+#### `/index.html` — Tap List
 
-* Displays your keg values in real time with WebSocket updates
-* Shows beer style, keg date, temperature, pouring status, and remaining volume
+Displays your configured tap list with live keg data:
+- Tap cards show: tap name, beer name and brewery, keg label, pour status, last pour amount, and remaining volume with progress bar
+- Tap handle images are shown if configured
+- Links to the tap setup page for editing
 
-### `/setup.html`
+#### `/taplist-setup.html` — Tap Setup
 
-* Configure and control your kegs
-* Set units, calibration, beer information, and view system status
-* Send commands directly to connected kegs
+Configure your tap list:
+- Create and edit taps — assign a name, keg, brewery, beer style, description, tasting notes, and ABV
+- Load beer details from the beverage library
+- Upload and assign tap handle images
+
+#### `/setup.html` — Keg Setup
+
+Configure and control connected kegs:
+- Set units (metric/imperial), measure mode (weight/volume), sensitivity, and keg mode
+- Calibrate the scale, set empty keg weight, and adjust temperature offset
+- Set beer information (style, date, OG, FG, ABV) and a friendly keg label
+- View live keg status
+
+#### `/airlock-setup.html` — Airlock Setup
+
+Configure airlocks and fermentation integrations:
+- Enable/disable airlock support
+- Set a friendly label per airlock device
+- Configure [Grainfather](#grainfather-optional) and [Brewfather](#brewfather-optional) forwarding per airlock
+
+#### `/beverages.html` — Beverage Library
+
+Manage a library of beers and beverages to reuse across tap setups:
+- Add, edit, and delete beverages with name, brewery, style, ABV, IBU, OG, FG, SRM color, description, and tasting notes
+- Import directly from Brewfather batches (requires Brewfather credentials in Settings)
+
+### Android Companion App
+
+A native Android app is available at [open-plaato-keg-android](https://github.com/DarkJaeger/open-plaato-keg-android).
+
+Features:
+- Live tap list with keg data updated via WebSocket
+- Keg scale configuration and calibration
+- Airlock monitoring with BPM and temperature
+- Beverage library management with Brewfather batch import
+- Pour notifications — fires a local notification when a pour is detected (configurable, ≥ 5 oz threshold to suppress scale noise)
+- Settings for server URL, airlock support, and Brewfather credentials
+
+### iOS Companion App
+
+A native SwiftUI app for iPhone and iPad is available at [open-plaato-keg-ios](https://github.com/DarkJaeger/open-plaato-keg-ios).
+
+Requires iOS 16+ and an `open-plaato-keg` server running on your local network.
+
+Features:
+- Live tap list with keg levels, temperature, and pour status
+- Full keg details with beer info
+- Airlock monitoring with BPM and temperature readings
+- Beverage library management
+- Configurable server URL via Settings tab
 
 ### HTTP REST API
+
+#### `/api/config`
+
+* **Method:** `GET`
+* **Description:** Returns the current server-side app configuration.
+* **Response:**
+  ```json
+  { "airlock_enabled": true }
+  ```
+
+#### `POST /api/config/airlock-enabled`
+
+* **Description:** Enable or disable Plaato Airlock support.
+* **Body:** `{ "enabled": true }`
 
 ### `/api/kegs`
 
@@ -365,6 +393,7 @@ Showcase how to interact with WebSocket and REST API.
     * `min_temperature` / `max_temperature`: Temperature alert thresholds
     * `og` / `fg`: Original and final gravity values (from hardware)
     * `internal`: System info object (dev, ver, fw, build, tmpl, h-beat, buff-in)
+    * `my_label`: User-defined friendly keg name, shown on the dashboard (stored locally)
     * `my_beer_style`: User-defined beer style (stored locally)
     * `my_keg_date`: User-defined keg date (stored locally)
     * `my_og`: User-defined original gravity in format 1.xxx (stored locally)
@@ -377,51 +406,7 @@ Showcase how to interact with WebSocket and REST API.
 * **Description:** Retrieves details for a specific keg.
 * **Path Parameter:**
     *  `keg_id`: The unique ID of the keg.
-* **Response:** A JSON object representing the keg.
-    * **Example Response:**
-       ```json
-        {
-            "firmware_version": "2.0.10a",
-            "chip_temperature_string": "74.44°C",
-            "max_temperature": "30.000",
-            "min_temperature": "0.000",
-            "leak_detection": "0",
-            "volume_unit": "litre",
-            "wifi_signal_strength": "98",
-            "temperature_unit": "°C",
-            "beer_left_unit": "litre",
-            "keg_temperature_string": "22.87°C",
-            "fg": "1010",
-            "og": "1050",
-            "last_pour": "0.000",
-            "keg_temperature": "22.875",
-            "is_pouring": "255",
-            "percent_of_beer_left": "12.000",
-            "last_pour_string": "0.04L",
-            "temperature_offset": "-7.500",
-            "measure_unit": "2",
-            "max_keg_volume": "18.812",
-            "empty_keg_weight": "0.000",
-            "amount_left": "3.802",
-            "unit": "1",
-            "internal": {
-              "ver": "2.0.10a",
-              "tmpl": "TMPL57889",
-              "h-beat": "20",
-              "fw": "2.0.10a",
-              "dev": "ESP32",
-              "build": "Jul 20 2020 12:31:35",
-              "buff-in": "1024"
-            },
-            "id": "00000000000000000000000000000001",
-            "my_beer_style": "IPA",
-            "my_keg_date": "12.01.2025",
-            "my_og": "1.050",
-            "my_fg": "1.010",
-            "my_abv": "5.25"
-        }
-       ```
-* **Fields in Response:** Same as `/api/kegs`
+* **Response:** A JSON object representing the keg (same fields as `/api/kegs`).
 
 ### `/api/kegs/devices`
 
@@ -432,6 +417,205 @@ Showcase how to interact with WebSocket and REST API.
       ```json
       ["00000000000000000000000000000001"]
       ```
+
+### `/api/kegs/connected`
+
+* **Method:** `GET`
+* **Description:** Lists kegs with an active TCP connection right now.
+* **Response:** Array of keg ID strings.
+
+### Keg Command Endpoints
+
+Send commands to a connected keg:
+
+| Endpoint | Body | Description |
+|---|---|---|
+| `POST /api/kegs/:id/tare` | — | Tare the scale |
+| `POST /api/kegs/:id/tare-release` | — | Release tare |
+| `POST /api/kegs/:id/empty-keg` | — | Store current scale reading as empty keg reference |
+| `POST /api/kegs/:id/empty-keg-release` | — | Release empty keg |
+| `POST /api/kegs/:id/empty-keg-weight` | `{"value": 4.0}` | Set empty keg reference weight directly (kg or lbs) |
+| `POST /api/kegs/:id/max-keg-volume` | `{"value": 19.5}` | Set max keg volume |
+| `POST /api/kegs/:id/temperature-offset` | `{"value": -2.5}` | Adjust temperature calibration offset |
+| `POST /api/kegs/:id/calibrate-known-weight` | `{"value": 5000}` | Calibrate with known weight (grams) |
+| `POST /api/kegs/:id/reset-last-pour` | — | Reset last pour value to zero |
+| `POST /api/kegs/:id/unit` | `{"value": "metric"\|"us"}` | Set unit system (immediately updates display units) |
+| `POST /api/kegs/:id/measure-unit` | `{"value": "weight"\|"volume"}` | Set measure mode (immediately updates display units) |
+| `POST /api/kegs/:id/keg-mode` | `{"value": "beer"\|"co2"}` | Set keg mode *(experimental)* |
+| `POST /api/kegs/:id/sensitivity` | `{"value": "low"\|"medium"\|"high"\|"very_low"}` | Set pour detection sensitivity |
+| `POST /api/kegs/:id/label` | `{"value": "Basement Tap"}` | Set friendly keg label (stored locally) |
+| `POST /api/kegs/:id/beer-style` | `{"value": "IPA"}` | Set beer style (stored locally + sent to keg) |
+| `POST /api/kegs/:id/date` | `{"value": "01.01.2025"}` | Set keg date (stored locally + sent to keg) |
+| `POST /api/kegs/:id/og` | `{"value": "1.050"}` | Set original gravity (stored locally) |
+| `POST /api/kegs/:id/fg` | `{"value": "1.010"}` | Set final gravity (stored locally) |
+| `POST /api/kegs/:id/abv` | `{"og": "1.050", "fg": "1.010"}` | Calculate & store ABV |
+| `POST /api/kegs/:id/delete` | — | Remove a keg's stored data |
+
+### Airlock REST API
+
+#### `/api/airlocks`
+
+* **Method:** `GET`
+* **Description:** Retrieves data for all known airlocks.
+* **Response:** Array of airlock objects.
+   * **Example Response:**
+      ```json
+      [
+        {
+          "id": "my-airlock-1",
+          "label": "Primary",
+          "temperature": "20.5",
+          "bubbles_per_min": "2.3",
+          "error": "0"
+        }
+      ]
+      ```
+
+#### `/api/airlocks/:id`
+
+* **Method:** `GET`
+* **Description:** Retrieves data for a single airlock.
+* **Response:** Airlock object, or `404` if not found.
+
+#### `/api/airlocks/:id/data`
+
+* **Method:** `POST`
+* **Description:** Submit temperature and/or BPM for an airlock. At least one field required.
+* **Body:**
+  ```json
+  { "temperature": "20.5", "bubbles_per_min": "2.3" }
+  ```
+
+#### `/api/airlocks/:id/label`
+
+* **Method:** `POST`
+* **Description:** Set a human-readable label for the airlock.
+* **Body:** `{ "value": "Primary" }`
+
+#### `/api/airlocks/:id/grainfather`
+
+* **Method:** `POST`
+* **Description:** Configure Grainfather integration for this airlock.
+* **Body:**
+  ```json
+  { "enabled": true, "unit": "celsius", "specific_gravity": "1.050", "url": "https://local.community.grainfather.com/iot/.../custom" }
+  ```
+* `url` is the per-airlock Grainfather endpoint URL (found in your Grainfather session). Sending is skipped if the URL is not set.
+* When enabled, airlock data is forwarded to the Grainfather community web app at most once every 15 minutes (requires temperature; BPM is optional).
+
+#### `/api/airlocks/:id/brewfather`
+
+* **Method:** `POST`
+* **Description:** Configure Brewfather custom stream forwarding for this airlock.
+* **Body:**
+  ```json
+  { "enabled": true, "unit": "celsius", "specific_gravity": "1.050", "og": "1.060", "batch_volume": "20.0", "url": "https://log.brewfather.net/stream?id=..." }
+  ```
+* `url` is the per-airlock Brewfather custom stream URL (found in your Brewfather batch). Sending is skipped if the URL is not set.
+* When enabled, temperature and BPM data are forwarded to Brewfather at most once every 15 minutes.
+
+### Tap List API
+
+#### `/api/taps`
+
+* **Method:** `GET`
+* **Description:** Returns all configured taps.
+* **Response:** Array of tap objects.
+
+#### `/api/taps/:id`
+
+* **Method:** `GET` / `POST`
+* **Description:** Get or save a tap. Use `id = "new"` to create a new tap.
+* **Body (POST):**
+  ```json
+  {
+    "name": "Basement Tap",
+    "tap_number": 1,
+    "keg_id": "00000000000000000000000000000001",
+    "brewery": "Home Brew Co",
+    "description": "A hoppy IPA",
+    "tasting_notes": "Citrus, pine",
+    "abv": "5.5",
+    "handle_image": "my-tap.jpg"
+  }
+  ```
+
+#### `/api/taps/:id/delete`
+
+* **Method:** `POST`
+* **Description:** Delete a tap.
+
+#### `/api/tap-handles`
+
+* **Method:** `GET`
+* **Description:** Returns a list of uploaded tap handle image filenames.
+
+#### `POST /api/tap-handles/upload`
+
+* **Description:** Upload a tap handle image (multipart form, field `file`). Returns the stored filename.
+
+#### `POST /api/tap-handles/:filename/delete`
+
+* **Description:** Delete an uploaded tap handle image.
+
+#### `GET /uploads/tap-handles/:filename`
+
+* **Description:** Serves uploaded tap handle images.
+
+### Beverage Library API
+
+#### `/api/beverages`
+
+* **Method:** `GET`
+* **Description:** Returns all beverages in the library.
+* **Response:** Array of beverage objects.
+
+#### `/api/beverages/:id`
+
+* **Method:** `GET` / `POST`
+* **Description:** Get or save a beverage. Use `id = "new"` to create.
+* **Body (POST):**
+  ```json
+  {
+    "name": "Session IPA",
+    "brewery": "Home Brew Co",
+    "style": "IPA",
+    "abv": 4.5,
+    "ibu": 40,
+    "og": 1.048,
+    "fg": 1.010,
+    "srm": 6,
+    "color": "#f5a623",
+    "description": "A light, hoppy IPA",
+    "tasting_notes": "Citrus, floral"
+  }
+  ```
+
+#### `POST /api/beverages/:id/delete`
+
+* **Description:** Delete a beverage from the library.
+
+### Brewfather Import API
+
+#### `GET /api/config/brewfather`
+
+* **Description:** Returns whether Brewfather credentials are configured.
+* **Response:** `{ "configured": true }`
+
+#### `POST /api/config/brewfather`
+
+* **Description:** Save Brewfather API credentials (stored server-side).
+* **Body:** `{ "user_id": "abc123", "api_key": "your-api-key" }`
+
+#### `GET /api/brewfather/batches`
+
+* **Description:** Fetches your Brewfather batch list (requires credentials configured).
+* **Response:** Array of batch summaries: `[{ "id": "...", "name": "...", "style": "...", "status": "..." }]`
+
+#### `POST /api/brewfather/import/:batch_id`
+
+* **Description:** Import a Brewfather batch as a beverage in the local library.
+* **Response:** The newly created beverage object.
 
 ### `/api/metrics`
 
@@ -462,20 +646,41 @@ plaato_keg{id="00000000000000000000000000000001",type="is_pouring"} 0.0
 
 * **Method:** `GET`
 * **Description:** Returns if webserver is started
-* **Response**: `200 OK` with body "1"
+* **Response**: `200 OK` with body containing server version string
 
 ### WebSocket
 
-All updates can be received via websocket.
+All updates can be received via WebSocket at `/ws`.
 
 ```javascript
- const socket = new WebSocket('/ws');
- socket.addEventListener('message', (event) => {
-    const updatedKeg = JSON.parse(event.data);
- }
+const socket = new WebSocket('/ws');
+socket.addEventListener('message', (event) => {
+  const msg = JSON.parse(event.data);
+
+  if (msg.type === 'airlock') {
+    // Airlock update: { type: "airlock", data: { id, label, temperature, bubbles_per_min, ... } }
+    console.log('Airlock update', msg.data);
+  } else {
+    // Keg update: full keg object (same format as /api/kegs/:id)
+    console.log('Keg update', msg);
+  }
+});
 ```
 
-Message is in the same format as in API calls.
+**Keg messages** are the full keg data object (same format as `GET /api/kegs/:id`).
+
+**Airlock messages** have a `type: "airlock"` wrapper:
+```json
+{
+  "type": "airlock",
+  "data": {
+    "id": "my-airlock-1",
+    "label": "Primary",
+    "temperature": "20.5",
+    "bubbles_per_min": "2.3"
+  }
+}
+```
 
 ### MQTT (optional)
 
@@ -500,3 +705,12 @@ Environment variables to set:
     *  "plaato-auth-key:barhelper-custom-keg-monitor-id,plaato-auth-key:barhelper-custom-keg-monitor-id"
     * eg. "00000000000000000000000000000001:custom-1"
 
+### Grainfather (optional)
+
+Per-airlock Grainfather forwarding sends temperature, BPM, and specific gravity to the Grainfather community web app. Configure via `/api/airlocks/:id/grainfather` or the Airlock Setup page. Data is forwarded at most once every 15 minutes per airlock.
+
+### Brewfather (optional)
+
+Per-airlock Brewfather forwarding sends temperature, BPM, specific gravity, and other fermentation data to a Brewfather custom stream URL. Configure via `/api/airlocks/:id/brewfather` or the Airlock Setup page. Data is forwarded at most once every 15 minutes per airlock.
+
+Brewfather batch import allows you to pull batch details from Brewfather into the local beverage library. Configure credentials via the Settings page or `POST /api/config/brewfather`, then browse and import batches via `GET /api/brewfather/batches` and `POST /api/brewfather/import/:batch_id`.

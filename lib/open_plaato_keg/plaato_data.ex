@@ -9,8 +9,12 @@ defmodule OpenPlaatoKeg.PlaatoData do
     {:hardware, "vw", "49"} => :is_pouring,
     {:hardware, "vw", "51"} => :amount_left,
     {:hardware, "vw", "52"} => :temperature_offset,
+    {:hardware, "vw", "53"} => :weight_raw,
+    {:hardware, "vw", "54"} => :volume_raw,
+    {:hardware, "vw", "55"} => :pour_volume_raw,
     {:hardware, "vw", "56"} => :keg_temperature,
     {:hardware, "vw", "59"} => :last_pour,
+    {:hardware, "vw", "63"} => :temperature_correction,
     {:hardware, "vw", "60"} => :tare,
     {:hardware, "vw", "61"} => :known_weight_calibrate,
     {:hardware, "vw", "62"} => :empty_keg_weight,
@@ -23,6 +27,7 @@ defmodule OpenPlaatoKeg.PlaatoData do
     {:hardware, "vw", "70"} => :calculated_alcohol_string,
     {:hardware, "vw", "71"} => :unit,
     {:hardware, "vw", "72"} => :calculate,
+    {:hardware, "vw", "73"} => :weight_unit,
     {:hardware, "vw", "74"} => :beer_left_unit,
     {:hardware, "vw", "75"} => :measure_unit,
     {:hardware, "vw", "76"} => :max_keg_volume,
@@ -36,7 +41,16 @@ defmodule OpenPlaatoKeg.PlaatoData do
     {:hardware, "vw", "89"} => :sensitivity,
     {:hardware, "vw", "92"} => :chip_temperature_string,
     {:hardware, "vw", "93"} => :firmware_version,
-    {:property, "51", "max"} => :max_keg_volume
+    {:property, "51", "max"} => :max_keg_volume,
+    {:property, "86", "min"} => :min_temperature,
+    {:property, "86", "max"} => :min_temperature_max,
+    {:property, "87", "min"} => :max_temperature_min,
+    {:property, "87", "max"} => :max_temperature,
+
+    # Plaato Airlock pins
+    {:hardware, "vw", "99"} => :airlock_error,
+    {:hardware, "vw", "100"} => :airlock_bubble_count,
+    {:hardware, "vw", "101"} => :airlock_temperature
   }
 
   def decode(commands) when is_list(commands) do
@@ -45,9 +59,10 @@ defmodule OpenPlaatoKeg.PlaatoData do
     |> Enum.reject(&is_nil/1)
   end
 
-  def decode({:get_shared_dash, _, _, dash}) do
-    {:id, dash}
-  end
+  # Newer Plaato Keg firmware uses get_shared_dash (cmd 29) for the auth token.
+  # Older Plaato Airlock firmware (NodeMCU v0.5.1) uses login (cmd 2).
+  def decode({:get_shared_dash, _, _, dash}), do: {:id, dash}
+  def decode({:login, _, _, token}), do: {:id, token}
 
   def decode({:internal, _, _, hardware_data}) do
     {:internal, hardware_data}
@@ -56,7 +71,7 @@ defmodule OpenPlaatoKeg.PlaatoData do
   def decode({type, kind, id, data} = message) do
     case Map.get(@plaato_data, {type, kind, id}) do
       nil ->
-        Logger.debug("Unknown data type", data: inspect(message))
+        Logger.debug("Unknown pin data (not mapped)", data: inspect(message))
 
         if Application.get_env(:open_plaato_keg, :include_unknown_data),
           do: {"_#{type}_#{kind}_#{id}", data},

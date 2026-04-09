@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transfer Scale Setup - Open Plaato</title>
+  <style>@import url("style.css");</style>
+</head>
+<body>
+  <div id="header_container">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMenu">
+          <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+        </a>
+      </div>
+      <div id="navbarMenu" class="navbar-menu">
+        <div class="navbar-start">
+          <a class="navbar-item" href="/index.html">Home</a>
+          <a class="navbar-item" href="/taplist.html">Tap List</a>
+          <div class="navbar-item has-dropdown" id="configureDropdown">
+            <a class="navbar-link" onclick="toggleDropdown(event)">Configure</a>
+            <div class="navbar-dropdown">
+              <a class="navbar-item" href="/taplist-setup.html">Tap Setup</a>
+              <a class="navbar-item" href="/tap-handles.html">Tap Handles</a>
+              <a class="navbar-item" href="/setup.html">Keg Setup</a>
+              <a class="navbar-item" href="/airlock-setup.html">Airlock Setup</a>
+              <a class="navbar-item" href="/transfer-scales.html">Transfer Scales</a>
+              <a class="navbar-item" href="/beverages.html">Beverages</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <div id="page_container" class="container pageEntry">
+    <section class="section">
+      <div class="container">
+        <h1 class="title is-2">Transfer Scale Setup</h1>
+        <p class="subtitle">Configure WiFi scales placed under kegs during transfers from fermenter.</p>
+
+        <!-- Add New Scale -->
+        <div class="box section-box">
+          <h2 class="title is-4">Add New Scale</h2>
+          <p class="help" style="margin-bottom:1rem;">Give the scale a unique ID (used in API URLs) and an optional display label.</p>
+          <div class="columns">
+            <div class="column">
+              <div class="field">
+                <label class="label" for="newScaleId">Scale ID</label>
+                <div class="control">
+                  <input class="input" type="text" id="newScaleId" placeholder="e.g. kitchen-scale" />
+                </div>
+                <p class="help">Lowercase letters, numbers, hyphens. Used in API URL.</p>
+              </div>
+            </div>
+            <div class="column">
+              <div class="field">
+                <label class="label" for="newScaleLabel">Label <span class="has-text-grey">(optional)</span></label>
+                <div class="control">
+                  <input class="input" type="text" id="newScaleLabel" placeholder="e.g. Primary Fermenter Scale" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <button class="button is-primary" onclick="addScale()">Add Scale</button>
+          </div>
+        </div>
+
+        <!-- Configure Scale -->
+        <div class="box section-box">
+          <h2 class="title is-4">Configure Scale</h2>
+          <p class="help" style="margin-bottom:1rem;">Select a scale to view live data and adjust settings. Scales appear once they have sent data or been added above.</p>
+
+          <div class="field">
+            <label class="label" for="scaleId">Select Scale</label>
+            <div class="control">
+              <div class="select is-fullwidth">
+                <select id="scaleId">
+                  <option value="">Select a scale...</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live status -->
+          <div id="scaleStatus" class="box" style="display:none; margin-bottom:1.5rem; background: rgba(0,0,0,0.2);">
+            <div class="columns">
+              <div class="column">
+                <div class="label">Current Weight</div>
+                <div style="font-family: var(--font-mono); font-size: 1.8rem; color: var(--amber-400);">
+                  <span id="statusWeight">—</span> <span style="font-size:1rem; color: rgba(254,252,232,0.5);">kg</span>
+                </div>
+              </div>
+              <div class="column">
+                <div class="label">Fill</div>
+                <div style="font-family: var(--font-mono); font-size: 1.8rem; color: var(--amber-400);">
+                  <span id="statusFill">—</span><span style="font-size:1rem; color: rgba(254,252,232,0.5);">%</span>
+                </div>
+              </div>
+              <div class="column">
+                <div class="label">Last Updated</div>
+                <div style="font-family: var(--font-mono); font-size: 1rem; color: rgba(254,252,232,0.6);" id="statusUpdated">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Label -->
+          <div class="field">
+            <label class="label">Label</label>
+            <div class="control">
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <input class="input" type="text" id="scaleLabel" placeholder="Display name" />
+                </div>
+                <div class="control">
+                  <button class="button is-primary" onclick="saveLabel()">Set</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty keg weight -->
+          <div class="field">
+            <label class="label">Empty Keg Weight (kg)</label>
+            <p class="help">Weight of the empty keg on the scale. Used as the zero reference for fill %.</p>
+            <div class="control">
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <input class="input" type="number" id="emptyKegWeight" placeholder="e.g. 2.0" step="0.01" min="0" />
+                </div>
+                <div class="control">
+                  <button class="button is-primary" onclick="saveEmptyWeight()">Set</button>
+                </div>
+                <div class="control">
+                  <button class="button is-info" onclick="tare()" title="Use current scale reading as empty keg weight">Tare</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Target weight -->
+          <div class="field">
+            <label class="label">Target Weight — Full Keg (kg)</label>
+            <p class="help">Weight of the full keg. Defines 100% fill level.</p>
+            <div class="control">
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <input class="input" type="number" id="targetWeight" placeholder="e.g. 22.0" step="0.01" min="0" />
+                </div>
+                <div class="control">
+                  <button class="button is-primary" onclick="saveTargetWeight()">Set</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Delete -->
+          <hr style="border-color: rgba(245,158,11,0.1); margin: 1.5rem 0;" />
+          <div class="field">
+            <button class="button is-danger" onclick="deleteScale()">Delete Scale</button>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="notification toast is-hidden"></div>
+
+  <script>
+    // Navbar
+    document.querySelectorAll('.navbar-burger').forEach(el =>
+      el.addEventListener('click', () => {
+        document.getElementById(el.dataset.target).classList.toggle('is-active');
+        el.classList.toggle('is-active');
+      })
+    );
+    function toggleDropdown(e) {
+      e.preventDefault();
+      document.getElementById('configureDropdown').classList.toggle('is-open');
+    }
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#configureDropdown'))
+        document.getElementById('configureDropdown')?.classList.remove('is-open');
+    });
+
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `notification toast is-${type}`;
+      setTimeout(() => toast.classList.add('is-hidden'), 3000);
+    }
+
+    const scaleSelect = document.getElementById('scaleId');
+    let refreshTimer = null;
+
+    function loadScales() {
+      fetch('/api/transfer-scales')
+        .then(r => r.json())
+        .then(scales => {
+          const currentValue = scaleSelect.value;
+          scaleSelect.innerHTML = '<option value="">Select a scale...</option>';
+          scales.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = (s.label && s.label.trim()) ? `${s.label.trim()} (${s.id})` : s.id;
+            if (s.id === currentValue) opt.selected = true;
+            scaleSelect.appendChild(opt);
+          });
+          if (currentValue && scales.some(s => s.id === currentValue)) {
+            loadScaleData(currentValue);
+          }
+        })
+        .catch(() => {});
+    }
+
+    function loadScaleData(id) {
+      if (!id) return;
+      fetch(`/api/transfer-scales/${id}`)
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById('scaleStatus').style.display = 'block';
+
+          const raw = data.raw_weight;
+          document.getElementById('statusWeight').textContent = raw != null ? Number(raw).toFixed(3) : '—';
+
+          const fill = data.fill_percent;
+          document.getElementById('statusFill').textContent = fill != null ? Number(fill).toFixed(1) : '—';
+
+          const ts = data.last_updated;
+          if (ts) {
+            const ago = Math.floor(Date.now() / 1000) - ts;
+            document.getElementById('statusUpdated').textContent =
+              ago < 5 ? 'just now' :
+              ago < 60 ? `${ago}s ago` :
+              ago < 3600 ? `${Math.floor(ago / 60)}m ago` :
+              `${Math.floor(ago / 3600)}h ago`;
+          } else {
+            document.getElementById('statusUpdated').textContent = 'no data yet';
+          }
+
+          if (document.activeElement !== document.getElementById('scaleLabel'))
+            document.getElementById('scaleLabel').value = data.label || '';
+          if (document.activeElement !== document.getElementById('emptyKegWeight'))
+            document.getElementById('emptyKegWeight').value = data.empty_keg_weight != null ? data.empty_keg_weight : '';
+          if (document.activeElement !== document.getElementById('targetWeight'))
+            document.getElementById('targetWeight').value = data.target_weight != null ? data.target_weight : '';
+        })
+        .catch(() => {});
+    }
+
+    scaleSelect.addEventListener('change', () => {
+      const id = scaleSelect.value;
+      clearInterval(refreshTimer);
+      if (id) {
+        loadScaleData(id);
+        refreshTimer = setInterval(() => loadScaleData(id), 5000);
+      } else {
+        document.getElementById('scaleStatus').style.display = 'none';
+        document.getElementById('scaleLabel').value = '';
+        document.getElementById('emptyKegWeight').value = '';
+        document.getElementById('targetWeight').value = '';
+      }
+    });
+
+    function selectedId() {
+      const id = scaleSelect.value;
+      if (!id) { showToast('Please select a scale first', 'warning'); return null; }
+      return id;
+    }
+
+    function addScale() {
+      const id = document.getElementById('newScaleId').value.trim();
+      const label = document.getElementById('newScaleLabel').value.trim();
+      if (!id) { showToast('Scale ID is required', 'warning'); return; }
+      fetch(`/api/transfer-scales/${encodeURIComponent(id)}/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: label || null }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'ok') {
+            showToast(`Scale "${id}" added`, 'success');
+            document.getElementById('newScaleId').value = '';
+            document.getElementById('newScaleLabel').value = '';
+            loadScales();
+          } else {
+            showToast(`Error: ${data.error}`, 'danger');
+          }
+        })
+        .catch(err => showToast(`Error: ${err.message}`, 'danger'));
+    }
+
+    function saveLabel() {
+      const id = selectedId(); if (!id) return;
+      const label = document.getElementById('scaleLabel').value.trim();
+      fetch(`/api/transfer-scales/${id}/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'ok') { showToast('Label saved', 'success'); loadScales(); }
+          else showToast(`Error: ${data.error}`, 'danger');
+        })
+        .catch(err => showToast(`Error: ${err.message}`, 'danger'));
+    }
+
+    function saveEmptyWeight() {
+      const id = selectedId(); if (!id) return;
+      const val = parseFloat(document.getElementById('emptyKegWeight').value);
+      if (isNaN(val)) { showToast('Enter a valid weight', 'warning'); return; }
+      fetch(`/api/transfer-scales/${id}/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ empty_keg_weight: val }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'ok') { showToast('Empty keg weight saved', 'success'); loadScaleData(id); }
+          else showToast(`Error: ${data.error}`, 'danger');
+        })
+        .catch(err => showToast(`Error: ${err.message}`, 'danger'));
+    }
+
+    function tare() {
+      const id = selectedId(); if (!id) return;
+      fetch(`/api/transfer-scales/${id}`)
+        .then(r => r.json())
+        .then(data => {
+          const raw = data.raw_weight;
+          if (raw == null) { showToast('No weight data yet — scale has not sent data', 'warning'); return; }
+          fetch(`/api/transfer-scales/${id}/config`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ empty_keg_weight: raw }),
+          })
+            .then(r => r.json())
+            .then(cfg => {
+              if (cfg.status === 'ok') {
+                showToast(`Tared — empty keg set to ${Number(raw).toFixed(3)} kg`, 'success');
+                loadScaleData(id);
+              } else {
+                showToast(`Error: ${cfg.error}`, 'danger');
+              }
+            });
+        })
+        .catch(err => showToast(`Error: ${err.message}`, 'danger'));
+    }
+
+    function saveTargetWeight() {
+      const id = selectedId(); if (!id) return;
+      const val = parseFloat(document.getElementById('targetWeight').value);
+      if (isNaN(val)) { showToast('Enter a valid weight', 'warning'); return; }
+      fetch(`/api/transfer-scales/${id}/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_weight: val }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'ok') { showToast('Target weight saved', 'success'); loadScaleData(id); }
+          else showToast(`Error: ${data.error}`, 'danger');
+        })
+        .catch(err => showToast(`Error: ${err.message}`, 'danger'));
+    }
+
+    function deleteScale() {
+      const id = selectedId(); if (!id) return;
+      if (!confirm(`Delete scale "${id}"? This cannot be undone.`)) return;
+      fetch(`/api/transfer-scales/${id}/delete`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'ok') {
+            showToast(`Scale "${id}" deleted`, 'success');
+            clearInterval(refreshTimer);
+            document.getElementById('scaleStatus').style.display = 'none';
+            document.getElementById('scaleLabel').value = '';
+            document.getElementById('emptyKegWeight').value = '';
+            document.getElementById('targetWeight').value = '';
+            loadScales();
+          } else {
+            showToast(`Error: ${data.error}`, 'danger');
+          }
+        })
+        .catch(err => showToast(`Error: ${err.message}`, 'danger'));
+    }
+
+    loadScales();
+  </script>
+</body>
+</html>

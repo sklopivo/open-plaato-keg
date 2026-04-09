@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tap Handles - Open Plaato</title>
+  <style>@import url("style.css");</style>
+  <style>
+    .upload-zone {
+      border: 2px dashed rgba(255,255,255,0.2);
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: #3273dc;
+      background: rgba(50,115,220,0.05);
+    }
+    .upload-zone input[type=file] { display: none; }
+    .handle-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .handle-card {
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.04);
+      display: flex;
+      flex-direction: column;
+    }
+    .handle-card img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: contain;
+      background: rgba(0,0,0,0.3);
+      display: block;
+    }
+    .handle-card-footer {
+      padding: 0.6rem 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .handle-filename {
+      font-size: 0.8rem;
+      color: #ccc;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .preview-canvas { display: none; }
+  </style>
+</head>
+<body>
+  <div id="header_container">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMenu">
+          <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+        </a>
+      </div>
+      <div id="navbarMenu" class="navbar-menu">
+        <div class="navbar-start">
+          <a class="navbar-item" href="/index.html">Home</a>
+          <a class="navbar-item" href="/taplist.html">Tap List</a>
+          <div class="navbar-item has-dropdown" id="configureDropdown">
+            <a class="navbar-link" onclick="toggleDropdown(event)">Configure</a>
+            <div class="navbar-dropdown">
+              <a class="navbar-item" href="/taplist-setup.html">Tap Setup</a>
+              <a class="navbar-item" href="/tap-handles.html">Tap Handles</a>
+              <a class="navbar-item" href="/setup.html">Keg Setup</a>
+              <a class="navbar-item" href="/airlock-setup.html">Airlock Setup</a>
+              <a class="navbar-item" href="/transfer-scales.html">Transfer Scales</a>
+              <a class="navbar-item" href="/beverages.html">Beverages</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container" style="padding:1.5rem 1rem 3rem;">
+    <h1 class="title is-2">Tap Handles</h1>
+    <p class="subtitle">Upload tap handle images to use on the tap list display. Images must be exactly <strong>200×200 pixels</strong> and in <strong>.jpg</strong> format.</p>
+
+    <!-- Upload Section -->
+    <div class="box">
+      <h2 class="title is-5">Upload New Handle</h2>
+
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" accept=".jpg,image/jpeg" />
+        <p style="font-size:2rem;">📷</p>
+        <p class="has-text-weight-semibold">Click to select a JPG file</p>
+        <p class="has-text-grey" style="font-size:0.85rem;margin-top:0.25rem;">or drag and drop here</p>
+        <p class="has-text-warning" style="font-size:0.8rem;margin-top:0.5rem;">⚠️ Must be exactly 200×200 pixels and .jpg format</p>
+      </div>
+
+      <!-- Preview before upload -->
+      <div id="previewSection" style="display:none;margin-top:1rem;">
+        <div class="columns is-vcentered">
+          <div class="column is-narrow">
+            <img id="previewImg" src="" alt="preview"
+              style="width:100px;height:100px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.05);display:block;" />
+          </div>
+          <div class="column">
+            <p id="previewFilename" class="has-text-weight-semibold"></p>
+            <p id="previewDimensions" class="has-text-grey" style="font-size:0.85rem;"></p>
+            <p id="previewError" class="has-text-danger" style="font-size:0.85rem;display:none;"></p>
+          </div>
+          <div class="column is-narrow">
+            <button class="button is-primary" id="uploadBtn" onclick="uploadFile()">Upload</button>
+            <button class="button is-light" style="margin-left:0.5rem;" onclick="clearPreview()">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hidden canvas for dimension check -->
+      <canvas id="validationCanvas" class="preview-canvas"></canvas>
+    </div>
+
+    <!-- Existing Handles -->
+    <div class="box">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+        <h2 class="title is-5" style="margin:0;">Uploaded Handles</h2>
+        <button class="button is-light is-small" onclick="loadHandles()">Refresh</button>
+      </div>
+
+      <div id="handleGrid" class="handle-grid">
+        <p class="has-text-grey">Loading…</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="notification toast is-hidden"></div>
+
+  <script>
+    // navbar burger
+    document.querySelectorAll('.navbar-burger').forEach(el =>
+      el.addEventListener('click', () => {
+        const t = document.getElementById(el.dataset.target);
+        el.classList.toggle('is-active');
+        t.classList.toggle('is-active');
+      })
+    );
+    function toggleDropdown(e) {
+      e.preventDefault();
+      document.getElementById('configureDropdown').classList.toggle('is-open');
+    }
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#configureDropdown'))
+        document.getElementById('configureDropdown')?.classList.remove('is-open');
+    });
+
+    let pendingFile = null;
+
+    function showToast(msg, type = 'info') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `notification toast is-${type}`;
+      setTimeout(() => t.classList.add('is-hidden'), 4000);
+    }
+
+    // ── File selection ────────────────────────────
+    document.getElementById('fileInput').addEventListener('change', ev => {
+      const file = ev.target.files[0];
+      if (file) validateFile(file);
+    });
+
+    // ── Drag & drop ───────────────────────────────
+    const zone = document.getElementById('uploadZone');
+
+    zone.addEventListener('dragover', ev => { ev.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', ev => {
+      ev.preventDefault();
+      zone.classList.remove('drag-over');
+      const file = ev.dataTransfer.files[0];
+      if (file) validateFile(file);
+    });
+
+    // ── Validate file ─────────────────────────────
+    function validateFile(file) {
+      pendingFile = null;
+
+      // Extension check
+      if (!file.name.toLowerCase().endsWith('.jpg')) {
+        showToast('File must be a .jpg image', 'danger');
+        return;
+      }
+
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+
+      img.onload = () => {
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        URL.revokeObjectURL(url);
+
+        document.getElementById('previewSection').style.display = '';
+        document.getElementById('previewImg').src = URL.createObjectURL(file);
+        document.getElementById('previewFilename').textContent = file.name;
+        document.getElementById('previewDimensions').textContent = `${w} × ${h} pixels`;
+
+        const errEl = document.getElementById('previewError');
+        const uploadBtn = document.getElementById('uploadBtn');
+
+        if (w !== 200 || h !== 200) {
+          errEl.textContent = `❌ Image must be exactly 200×200 px (got ${w}×${h}). Please resize and try again.`;
+          errEl.style.display = '';
+          uploadBtn.disabled = true;
+          pendingFile = null;
+        } else {
+          errEl.style.display = 'none';
+          uploadBtn.disabled = false;
+          pendingFile = file;
+        }
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        showToast('Could not read image file', 'danger');
+      };
+
+      img.src = url;
+    }
+
+    function clearPreview() {
+      pendingFile = null;
+      document.getElementById('previewSection').style.display = 'none';
+      document.getElementById('fileInput').value = '';
+    }
+
+    // ── Upload ────────────────────────────────────
+    async function uploadFile() {
+      if (!pendingFile) return;
+
+      const btn = document.getElementById('uploadBtn');
+      btn.classList.add('is-loading');
+      btn.disabled = true;
+
+      const form = new FormData();
+      form.append('image', pendingFile);
+
+      try {
+        const res = await fetch('/api/tap-handles/upload', { method: 'POST', body: form });
+        const data = await res.json();
+
+        if (res.ok) {
+          showToast(`Uploaded: ${data.filename}`, 'success');
+          clearPreview();
+          loadHandles();
+        } else {
+          showToast(`Upload failed: ${data.error}`, 'danger');
+        }
+      } catch (e) {
+        showToast('Upload error: ' + e.message, 'danger');
+      } finally {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+      }
+    }
+
+    // ── Load existing handles ─────────────────────
+    async function loadHandles() {
+      const grid = document.getElementById('handleGrid');
+      try {
+        const res = await fetch('/api/tap-handles');
+        const handles = await res.json();
+
+        if (!handles.length) {
+          grid.innerHTML = '<p class="has-text-grey">No tap handles uploaded yet.</p>';
+          return;
+        }
+
+        grid.innerHTML = '';
+        handles.forEach(h => {
+          const card = document.createElement('div');
+          card.className = 'handle-card';
+          card.innerHTML = `
+            <img src="/uploads/tap-handles/${encodeURIComponent(h.filename)}" alt="${h.filename}"
+                 onerror="this.src='';this.alt='Image missing';" />
+            <div class="handle-card-footer">
+              <span class="handle-filename" title="${h.filename}">${h.filename}</span>
+              <button class="button is-danger is-light is-small" onclick="deleteHandle('${h.filename.replace(/'/g,"\\'")}')">✕</button>
+            </div>`;
+          grid.appendChild(card);
+        });
+      } catch (e) {
+        grid.innerHTML = '<p class="has-text-danger">Error loading handles.</p>';
+      }
+    }
+
+    // ── Delete handle ─────────────────────────────
+    async function deleteHandle(filename) {
+      if (!confirm(`Delete "${filename}"? Any taps using it will lose their image.`)) return;
+      try {
+        await fetch(`/api/tap-handles/${encodeURIComponent(filename)}/delete`, { method: 'POST' });
+        showToast(`Deleted ${filename}`, 'success');
+        loadHandles();
+      } catch (e) {
+        showToast('Delete failed', 'danger');
+      }
+    }
+
+    loadHandles();
+  </script>
+</body>
+</html>

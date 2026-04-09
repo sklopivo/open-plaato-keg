@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -24,7 +24,7 @@ jobs:
         uses: erlef/setup-beam@v1
         with:
           elixir-version: '1.16'
-          otp-version: '24'
+          otp-version: '26'
 
       - name: Install dependencies
         run: mix deps.get
@@ -78,8 +78,9 @@ jobs:
           else
             DOCKER_TAG="${{ github.ref_name }}"
           fi
+          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           docker buildx create --use
           docker buildx build --platform linux/amd64,linux/arm64 \
-            -t ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }} \
-            -t ghcr.io/${{ github.repository }}:${DOCKER_TAG} \
+            -t ghcr.io/${REPO}:${{ steps.version.outputs.version }} \
+            -t ghcr.io/${REPO}:${DOCKER_TAG} \
             --push .

@@ -80,6 +80,8 @@ body {
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(245, 158, 11, 0.2);
   padding: var(--space-sm) var(--space-lg);
+  position: relative;
+  z-index: 100;
 }
 
 .navbar-menu {
@@ -96,9 +98,81 @@ body {
   display: inline-block;
 }
 
-.navbar-item:hover {
+.navbar-item:hover, .navbar-link:hover {
   color: var(--amber-400);
   background: rgba(245, 158, 11, 0.1);
+}
+
+/* Dropdown */
+.navbar-item.has-dropdown {
+  position: relative;
+  padding: 0;
+}
+
+.navbar-link {
+  color: var(--foam-muted);
+  font-weight: 500;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.navbar-link::after {
+  content: "▾";
+  font-size: 0.7rem;
+  margin-left: 0.2rem;
+  opacity: 0.7;
+}
+
+.navbar-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: rgba(10, 16, 32, 0.98);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-md);
+  min-width: 180px;
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  padding: 0.35rem 0;
+}
+
+.navbar-dropdown .navbar-item {
+  display: block;
+  border-radius: 0;
+  padding: 0.45rem 1rem;
+  white-space: nowrap;
+}
+
+.navbar-dropdown .navbar-item:first-child { border-radius: var(--radius-md) var(--radius-md) 0 0; }
+.navbar-dropdown .navbar-item:last-child  { border-radius: 0 0 var(--radius-md) var(--radius-md); }
+
+.navbar-item.has-dropdown:hover .navbar-dropdown,
+.navbar-item.has-dropdown.is-open .navbar-dropdown {
+  display: block;
+}
+
+@media screen and (max-width: 1023px) {
+  .navbar-item.has-dropdown { padding: 0; }
+
+  .navbar-dropdown {
+    position: static;
+    display: block;
+    background: rgba(255,255,255,0.03);
+    border: none;
+    border-left: 2px solid rgba(245,158,11,0.25);
+    box-shadow: none;
+    padding: 0.2rem 0 0.2rem 0.5rem;
+    margin-left: var(--space-md);
+    border-radius: 0;
+  }
 }
 
 .navbar-burger {
@@ -124,6 +198,7 @@ body {
     top: 100%;
     left: 0;
     right: 0;
+    z-index: 100;
     background: rgba(15, 23, 42, 0.98);
     padding: var(--space-md);
     border-bottom: 1px solid rgba(245, 158, 11, 0.2);
@@ -482,12 +557,18 @@ body {
   width: 33.333%;
 }
 
+.column.is-half {
+  flex: none;
+  width: 50%;
+}
+
 @media screen and (max-width: 768px) {
   .columns {
     flex-direction: column;
   }
-  
-  .column.is-one-third {
+
+  .column.is-one-third,
+  .column.is-half {
     width: 100%;
   }
 }
@@ -633,7 +714,12 @@ body {
   overflow: hidden;
 }
 
-#kegContainer .card::before {
+/* Redesigned keg card layout */
+.keg-card {
+  padding: 0;
+}
+
+.keg-card::before {
   content: "";
   position: absolute;
   top: 0;
@@ -643,53 +729,130 @@ body {
   background: linear-gradient(90deg, var(--amber-400), var(--amber-600));
 }
 
-/* Temperature badge */
-.temperature-badge {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: rgba(254, 252, 232, 0.7);
-  z-index: 1;
+.keg-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.25rem 1.25rem 1rem;
 }
 
-/* Last pour badge */
-.last-pour-badge {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
+.keg-identity {
+  flex: 1;
+  min-width: 0;
+}
+
+.keg-label-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--foam);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.keg-meta {
+  margin-top: 0.3rem;
+  font-size: 0.82rem;
+  color: rgba(254, 252, 232, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.keg-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+  margin-left: 0.75rem;
+}
+
+.keg-temp-badge {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 0.82rem;
+  color: rgba(254, 252, 232, 0.6);
+}
+
+.keg-volume {
+  text-align: center;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid rgba(245, 158, 11, 0.1);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.1);
+}
+
+.keg-volume-number {
+  font-family: var(--font-mono);
+  font-size: 3.5rem;
+  font-weight: 700;
   color: var(--amber-400);
-  z-index: 1;
+  line-height: 1;
+  letter-spacing: -0.02em;
 }
 
-/* Remaining badge */
-.remaining-badge {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
+.keg-volume-unit {
+  font-family: var(--font-sans);
+  font-size: 1.2rem;
   font-weight: 500;
-  color: rgba(254, 252, 232, 0.7);
-  z-index: 1;
+  color: rgba(254, 252, 232, 0.45);
+  margin-left: 0.3rem;
 }
 
-/* Pouring indicator */
+.keg-remaining {
+  padding: 0.9rem 1.25rem;
+}
+
+.keg-progress-track {
+  height: 5px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.55rem;
+}
+
+.keg-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber-600), var(--amber-400));
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.keg-progress-fill.is-low {
+  background: linear-gradient(90deg, #dc2626, #ef4444);
+}
+
+.keg-remaining-text {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: rgba(254, 252, 232, 0.4);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.keg-footer {
+  padding: 0.55rem 1.25rem;
+  border-top: 1px solid rgba(245, 158, 11, 0.08);
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+}
+
+.keg-last-pour {
+  font-family: var(--font-mono);
+  font-size: 0.73rem;
+  color: var(--amber-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Pouring indicator — used inline in keg-status-row */
 .pouring-indicator {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  border: 2px solid rgba(254, 252, 232, 0.4);
+  border: 2px solid rgba(254, 252, 232, 0.25);
   background: transparent;
-  z-index: 1;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .pouring-indicator.is-pouring {
@@ -702,6 +865,34 @@ body {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
+}
+
+/* Airlock (fermentation) row on keg cards */
+.airlock-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid rgba(245, 158, 11, 0.15);
+  flex-wrap: wrap;
+}
+
+.airlock-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(254, 252, 232, 0.5);
+  margin-right: var(--space-xs);
+}
+
+.airlock-value {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--amber-400);
 }
 
 /* Utility classes */
@@ -726,4 +917,23 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--amber-600);
+}
+
+/* CO2 keg card variant */
+.keg-card.is-co2::before {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.co2-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  margin-left: 0.5rem;
+  vertical-align: middle;
 }

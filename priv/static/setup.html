@@ -28,7 +28,18 @@
         <div id="navbarMenu" class="navbar-menu">
           <div class="navbar-start">
             <a class="navbar-item" href="/index.html">Home</a>
-            <a class="navbar-item" href="/setup.html">Setup</a>
+            <a class="navbar-item" href="/taplist.html">Tap List</a>
+            <div class="navbar-item has-dropdown" id="configureDropdown">
+              <a class="navbar-link" onclick="toggleDropdown(event)">Configure</a>
+              <div class="navbar-dropdown">
+                <a class="navbar-item" href="/taplist-setup.html">Tap Setup</a>
+                <a class="navbar-item" href="/tap-handles.html">Tap Handles</a>
+                <a class="navbar-item" href="/setup.html">Keg Setup</a>
+                <a class="navbar-item" href="/airlock-setup.html">Airlock Setup</a>
+                <a class="navbar-item" href="/transfer-scales.html">Transfer Scales</a>
+                <a class="navbar-item" href="/beverages.html">Beverages</a>
+              </div>
+            </div>
           </div>
         </div>
       </nav>
@@ -144,6 +155,37 @@
                   </div>
                 </div>
               </div>
+
+              <div class="column">
+                <div class="field">
+                  <label class="label">Reset Last Pour</label>
+                  <p class="help">Clear a spurious last pour reading (e.g. from vibration)</p>
+                  <div class="control">
+                    <button class="button is-danger is-light" onclick="resetLastPour()">
+                      <span class="icon">✖</span>
+                      <span>Reset</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">Empty Keg Weight</label>
+              <p class="help">Set empty keg reference weight directly</p>
+              <div class="control">
+                <div class="field has-addons">
+                  <div class="control is-expanded">
+                    <input class="input" type="number" id="emptyKegWeight" placeholder="e.g., 4.0" step="0.1" min="0" />
+                  </div>
+                  <div class="control">
+                    <span class="button is-static" id="emptyKegWeightUnit">kg</span>
+                  </div>
+                  <div class="control">
+                    <button class="button is-primary" onclick="sendEmptyKegWeight()">Set</button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="field">
@@ -155,7 +197,7 @@
                     <input class="input" type="number" id="knownWeight" placeholder="e.g., 5.0" step="0.1" />
                   </div>
                   <div class="control">
-                    <span class="button is-static">kg</span>
+                    <span class="button is-static" id="knownWeightUnit">kg</span>
                   </div>
                   <div class="control">
                     <button class="button is-primary" onclick="sendKnownWeight()">Calibrate</button>
@@ -173,7 +215,7 @@
                     <input class="input" type="number" id="tempOffset" placeholder="e.g., -2.5" step="0.1" />
                   </div>
                   <div class="control">
-                    <span class="button is-static">°</span>
+                    <span class="button is-static" id="tempOffsetUnit">°C</span>
                   </div>
                   <div class="control">
                     <button class="button is-primary" onclick="sendTempOffset()">Set</button>
@@ -186,6 +228,38 @@
           <!-- Beer Info Section -->
           <div class="box section-box">
             <h2 class="title is-4">Beer Information</h2>
+
+            <div class="field">
+              <label class="label">Keg Label <span style="color: #ff3860;">*</span></label>
+              <p class="help">Friendly name shown on the dashboard (e.g. "Basement Tap", "Fridge #1")</p>
+              <div class="control">
+                <div class="field has-addons">
+                  <div class="control is-expanded">
+                    <input class="input" type="text" id="kegLabel" placeholder="e.g., Basement Tap" />
+                  </div>
+                  <div class="control">
+                    <button class="button is-primary" onclick="sendKegLabel()">Set</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="field" id="beverageLibraryField">
+              <label class="label">Load from Beverage Library <span class="has-text-grey">(optional)</span></label>
+              <p class="help">Select a stored beverage to auto-fill beer style, keg date, OG, FG, and ABV.</p>
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <div class="select is-fullwidth">
+                    <select id="beverageSelect">
+                      <option value="">— select a beverage —</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="control">
+                  <button class="button is-info" onclick="loadFromBeverage()">Load</button>
+                </div>
+              </div>
+            </div>
 
             <div class="columns">
               <div class="column">
@@ -206,10 +280,11 @@
               <div class="column">
                 <div class="field">
                   <label class="label">Keg Date <span style="color: #ff3860;">*</span></label>
+                  <p class="help" id="kegDateHelp">Day.Month.Year</p>
                   <div class="control">
                     <div class="field has-addons">
                       <div class="control is-expanded">
-                        <input class="input" type="text" id="kegDate" placeholder="e.g., 12.01.2025" />
+                        <input class="input" type="text" id="kegDate" placeholder="e.g. 25.03.2025" />
                       </div>
                       <div class="control">
                         <button class="button is-primary" onclick="sendKegDate()">Set</button>
@@ -283,7 +358,7 @@
                     <input class="input" type="number" id="maxVolume" placeholder="e.g., 19.66" step="0.01" />
                   </div>
                   <div class="control">
-                    <span class="button is-static">L</span>
+                    <span class="button is-static" id="maxVolumeUnit">L</span>
                   </div>
                   <div class="control">
                     <button class="button is-primary" onclick="sendMaxVolume()">Set</button>
@@ -314,9 +389,20 @@
               </div>
             </div>
 
-            <p class="help has-text-warning-dark" style="margin-top: 1rem;">
-              ⚠️ CO₂ mode is experimental and doesn't properly read the pins dedicated to CO₂. Use at your own discretion. Clicking this button won't visibly change the mode since there is no pin to read the current mode.
-            </p>
+            <div id="co2CapacityField" class="field" style="display:none; margin-top:1rem;">
+              <label class="label">CO₂ Cylinder Capacity</label>
+              <p class="help">Total weight of a full CO₂ cylinder (kg or lbs, matching your unit setting). Used to track how much CO₂ is remaining.</p>
+              <div class="control">
+                <div class="field has-addons">
+                  <div class="control is-expanded">
+                    <input class="input" type="number" id="co2CapacityInput" placeholder="e.g. 2.5" step="0.01" min="0" />
+                  </div>
+                  <div class="control">
+                    <button class="button is-primary" onclick="saveCO2Capacity()">Set</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Current Status Display -->
@@ -335,26 +421,107 @@
     <div id="toast" class="notification toast is-hidden"></div>
 
     <script>
-      // Navbar burger menu
-      const navbarBurgers = Array.prototype.slice.call(
-        document.querySelectorAll(".navbar-burger"),
-        0
+      // Navbar
+      document.querySelectorAll('.navbar-burger').forEach(el =>
+        el.addEventListener('click', () => {
+          document.getElementById(el.dataset.target).classList.toggle('is-active');
+          el.classList.toggle('is-active');
+        })
       );
-
-      if (navbarBurgers.length > 0) {
-        navbarBurgers.forEach((el) => {
-          el.addEventListener("click", () => {
-            const target = el.dataset.target;
-            const $target = document.getElementById(target);
-            el.classList.toggle("is-active");
-            $target.classList.toggle("is-active");
-          });
-        });
+      function toggleDropdown(e) {
+        e.preventDefault();
+        document.getElementById('configureDropdown').classList.toggle('is-open');
       }
+      document.addEventListener('click', e => {
+        if (!e.target.closest('#configureDropdown'))
+          document.getElementById('configureDropdown')?.classList.remove('is-open');
+      });
 
       const kegIdSelect = document.getElementById("kegId");
       const connectionStatus = document.getElementById("connectionStatus");
       let currentKegData = {};
+      let allBeverages = [];
+
+      async function loadBeverages() {
+        try {
+          const res = await fetch("/api/beverages");
+          if (!res.ok) throw new Error(await res.text());
+          allBeverages = await res.json();
+
+          const sel = document.getElementById("beverageSelect");
+          if (!sel) return;
+
+          sel.innerHTML = '<option value="">— select a beverage —</option>';
+          allBeverages.forEach((bev) => {
+            const opt = document.createElement("option");
+            opt.value = bev.id;
+            opt.dataset.beverage = JSON.stringify(bev);
+            opt.textContent = `${bev.name || "Unnamed"}${bev.style ? " · " + bev.style : ""}`;
+            sel.appendChild(opt);
+          });
+        } catch (e) {
+          // Non-fatal: user can still fill fields manually.
+          showToast("Failed to load beverages: " + e.message, "danger");
+        }
+      }
+
+      function parseFullNumber(str) {
+        const s = (str ?? "").toString().trim();
+        if (s === "") return null;
+        // Avoid partial parses like "1.05x".
+        if (!/^-?\d+(\.\d+)?$/.test(s)) return null;
+        return parseFloat(s);
+      }
+
+      function computeAbvFromOgFg(ogStr, fgStr) {
+        const og = parseFullNumber(ogStr);
+        const fg = parseFullNumber(fgStr);
+        if (og == null || fg == null) return "";
+        const abv = (og - fg) * 131.25;
+        const abvRounded = Math.round(abv * 100) / 100;
+        return abvRounded.toFixed(2).replace(/\.00$/, "");
+      }
+
+      function formatTodayKegDate() {
+        const now = new Date();
+        const dd = String(now.getDate()).padStart(2, "0");
+        const mm = String(now.getMonth() + 1).padStart(2, "0");
+        const yyyy = now.getFullYear();
+
+        const help = document.getElementById("kegDateHelp")?.textContent || "";
+        // Mirror updateUnitLabels(): Metric => Day.Month.Year, US => Month.Day.Year
+        // We must not use a loose `includes("Month.")` because Metric text also contains "Month."
+        const isUSFormat = help.trim().startsWith("Month.") || help.includes("Month.Day");
+
+        return isUSFormat ? `${mm}.${dd}.${yyyy}` : `${dd}.${mm}.${yyyy}`;
+      }
+
+      function loadFromBeverage() {
+        const sel = document.getElementById("beverageSelect");
+        if (!sel) return;
+
+        const selectedOpt = sel.options[sel.selectedIndex];
+        if (!selectedOpt || !selectedOpt.dataset.beverage) return;
+
+        const bev = JSON.parse(selectedOpt.dataset.beverage);
+
+        const beerStyleEl = document.getElementById("beerStyle");
+        const kegDateEl = document.getElementById("kegDate");
+        const ogEl = document.getElementById("og");
+        const fgEl = document.getElementById("fg");
+        const abvEl = document.getElementById("abv");
+
+        if (beerStyleEl) beerStyleEl.value = (bev.style || bev.beer_style || "").trim();
+        if (kegDateEl) kegDateEl.value = formatTodayKegDate();
+        if (ogEl) ogEl.value = (bev.og || "").trim();
+        if (fgEl) fgEl.value = (bev.fg || bev.sg || "").trim();
+
+        const abvFromBev = (bev.abv || "").toString().trim();
+        const abvComputed = computeAbvFromOgFg(bev.og, bev.fg);
+        if (abvEl) abvEl.value = abvFromBev || abvComputed || "";
+
+        beerStyleEl?.focus?.();
+      }
 
       // Load connected kegs
       function loadConnectedKegs() {
@@ -422,13 +589,21 @@
 
       function populateFormFields(data) {
         // Temperature offset - only update if not focused
-        if (data.temperature_offset) {
+        if (data.temperature_offset != null) {
           updateFieldIfNotFocused("tempOffset", data.temperature_offset);
+        }
+
+        if (data.empty_keg_weight != null) {
+          updateFieldIfNotFocused("emptyKegWeight", data.empty_keg_weight);
         }
 
         // Max keg volume - only update if not focused
         if (data.max_keg_volume) {
           updateFieldIfNotFocused("maxVolume", data.max_keg_volume);
+        }
+
+        if (data.my_label != null) {
+          updateFieldIfNotFocused("kegLabel", data.my_label.trim());
         }
 
         // Beer style (stored locally as my_beer_style) - only update if not focused
@@ -564,6 +739,25 @@
                 <td><strong>Buffer</strong></td>
                 <td>${data.internal?.["buff-in"] ? data.internal["buff-in"] + " bytes" : "N/A"}</td>
               </tr>
+              <tr>
+                <td><strong>Manual OTA Update</strong></td>
+                <td>
+                  <div class="field has-addons">
+                    <div class="control is-expanded">
+                      <input class="input" type="text" id="otaFirmwarePath"
+                             placeholder="/firmware/PlaatoKegFW_2-0-10a.bin or full https URL" />
+                    </div>
+                    <div class="control">
+                      <button class="button is-danger" type="button" onclick="triggerOtaUpdate()">
+                        Send OTA
+                      </button>
+                    </div>
+                  </div>
+                  <p class="help has-text-danger">
+                    Warning: OTA is at your own risk. Using the wrong firmware can permanently brick the scale.
+                  </p>
+                </td>
+              </tr>
             </tbody>
           </table>
         `;
@@ -586,6 +780,8 @@
           document.getElementById("unitUS")?.classList.add("is-primary", "is-selected");
         }
 
+        updateUnitLabels(data.unit || "1");
+
         const beerLeftUnit = data.beer_left_unit;
 
         // Measure mode based on beer_left_unit: lbs/kg = Weight, gal/litre = Volume
@@ -599,6 +795,12 @@
         // Keg mode
         if (data.keg_mode_c02_beer === "1") document.getElementById("kegModeBeer")?.classList.add("is-primary", "is-selected");
         if (data.keg_mode_c02_beer === "2") document.getElementById("kegModeCO2")?.classList.add("is-primary", "is-selected");
+        const co2Field = document.getElementById('co2CapacityField');
+        if (co2Field) co2Field.style.display = data.keg_mode_c02_beer === "2" ? 'block' : 'none';
+        if (data.my_co2_capacity) {
+          const cap = document.getElementById('co2CapacityInput');
+          if (cap && document.activeElement !== cap) cap.value = data.my_co2_capacity;
+        }
 
         // Sensitivity
         const sensId = `sens${data.sensitivity}`;
@@ -623,11 +825,12 @@
           document.getElementById("currentSettings").innerHTML =
             '<p class="has-text-grey">Select a keg to view current settings</p>';
           clearActiveButtons();
+          updateUnitLabels("1");
         }
       });
 
       // WebSocket connection for real-time updates
-      const socket = new WebSocket(`ws://${window.location.host}/ws`);
+      const socket = new WebSocket('/ws');
 
       socket.addEventListener("open", () => {
         console.log("WebSocket connected for setup page");
@@ -654,6 +857,7 @@
 
       loadConnectedKegs();
       setInterval(loadConnectedKegs, 10000);
+      loadBeverages();
 
       function getSelectedKeg() {
         const kegId = kegIdSelect.value;
@@ -702,6 +906,10 @@
 
       function sendEmptyKeg() {
         sendCommandWithRelease("empty-keg", "empty-keg-release", "emptyKegBtn");
+      }
+
+      function resetLastPour() {
+        sendCommand("reset-last-pour");
       }
 
       // Helper function to send command, wait 1s, then send release
@@ -768,6 +976,12 @@
         sendCommand("temperature-offset", { value });
       }
 
+      function sendEmptyKegWeight() {
+        const value = document.getElementById("emptyKegWeight").value;
+        if (!value) { showToast("Please enter a weight value", "warning"); return; }
+        sendCommand("empty-keg-weight", { value });
+      }
+
       // Volume commands
       function sendMaxVolume() {
         const value = document.getElementById("maxVolume").value;
@@ -776,6 +990,11 @@
       }
 
       // Beer info commands
+      function sendKegLabel() {
+        const value = document.getElementById("kegLabel").value;
+        sendCommand("label", { value });
+      }
+
       function sendBeerStyle() {
         const value = document.getElementById("beerStyle").value;
         if (!value) { showToast("Please enter a beer style", "warning"); return; }
@@ -851,8 +1070,23 @@
 
       // ABV commands
       // Settings commands
+      function updateUnitLabels(unit) {
+        const isUS = unit === "2" || unit === "us";
+        const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+        set("emptyKegWeightUnit", isUS ? "lbs" : "kg");
+        set("knownWeightUnit",    isUS ? "lbs" : "kg");
+        set("tempOffsetUnit",     isUS ? "°F"  : "°C");
+        set("maxVolumeUnit",      isUS ? "gal" : "L");
+        // Keg date format: metric = Day.Month.Year, imperial = Month.Day.Year
+        const kegDateEl = document.getElementById("kegDate");
+        const kegDateHelp = document.getElementById("kegDateHelp");
+        if (kegDateEl) kegDateEl.placeholder = isUS ? "e.g. 03.25.2025" : "e.g. 25.03.2025";
+        if (kegDateHelp) kegDateHelp.textContent = isUS ? "Month.Day.Year" : "Day.Month.Year";
+      }
+
       function setUnit(value) {
         sendCommand("unit", { value });
+        updateUnitLabels(value);
       }
 
       function setMeasureUnit(value) {
@@ -861,11 +1095,66 @@
 
       function setKegMode(value) {
         sendCommand("keg-mode", { value });
+        document.getElementById('co2CapacityField').style.display = value === 'co2' ? 'block' : 'none';
+      }
+
+      function saveCO2Capacity() {
+        const kegId = document.getElementById('kegId')?.value;
+        if (!kegId) { showToast('Select a keg first', 'warning'); return; }
+        const value = document.getElementById('co2CapacityInput').value.trim();
+        if (!value) { showToast('Enter a capacity value', 'warning'); return; }
+        fetch(`/api/kegs/${kegId}/co2-capacity`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value }),
+        })
+          .then(r => r.json())
+          .then(data => {
+            if (data.status === 'ok') showToast('CO₂ capacity saved', 'success');
+            else showToast(`Error: ${data.error}`, 'danger');
+          })
+          .catch(err => showToast(`Error: ${err.message}`, 'danger'));
       }
 
       function setSensitivity(level) {
         sendCommand("sensitivity", { value: level.toString() });
       }
+
+      async function triggerOtaUpdate() {
+        const kegId = getSelectedKeg();
+        if (!kegId) {
+          showToast("Select a keg first before sending OTA.", "warning");
+          return;
+        }
+
+        const input = document.getElementById("otaFirmwarePath");
+        const raw = input ? input.value.trim() : "";
+        if (!raw) {
+          showToast("Enter a firmware URL or server path for OTA.", "warning");
+          return;
+        }
+
+        const body =
+          raw.startsWith("http://") || raw.startsWith("https://")
+            ? { url: raw }
+            : { path: raw };
+
+        try {
+          const res = await fetch(`/api/kegs/${encodeURIComponent(kegId)}/ota`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data.error || `HTTP ${res.status}`);
+          }
+          showToast("OTA command sent. The device may reboot if update succeeds.", "info");
+        } catch (err) {
+          showToast(`OTA failed: ${err.message}`, "danger");
+        }
+      }
+
     </script>
   </body>
 </html>
