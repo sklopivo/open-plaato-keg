@@ -1,3 +1,9 @@
+## --- This project is no longer maintained ---
+
+This repository has been archived and is no longer actively developed. The project lives on at **[DarkJaeger/open-plaato-keg](https://github.com/DarkJaeger/open-plaato-keg)**, where development continues with new features and improvements. Please head over there for the latest updates, issues, and contributions.
+
+---
+
 ## What is Open Plaato Keg?
 
 Take control of your Plaato Keg! This reverse-engineered solution bypasses the Plaato cloud, keeping your keg data local and accessible even after the cloud service is discontinued.
