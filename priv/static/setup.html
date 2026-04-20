@@ -147,6 +147,24 @@
             </div>
 
             <div class="field">
+              <label class="label">Set Specific Empty Keg Weight</label>
+              <p class="help">Enter the exact weight of your empty keg</p>
+              <div class="control">
+                <div class="field has-addons">
+                  <div class="control is-expanded">
+                    <input class="input" type="number" id="emptyKegValue" placeholder="e.g., 4.5" step="0.1" />
+                  </div>
+                  <div class="control">
+                    <span class="button is-static" id="emptyKegUnit">kg</span>
+                  </div>
+                  <div class="control">
+                    <button class="button is-primary" onclick="sendEmptyKegValue()">Set Weight</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
               <label class="label">Calibrate with Known Weight</label>
               <p class="help">Place a known weight on the scale for calibration</p>
               <div class="control">
@@ -460,6 +478,17 @@
         if (data.known_weight) {
           updateFieldIfNotFocused("knownWeight", data.known_weight);
         }
+        
+        // Empty keg weight - only update if not focused
+        if (data.empty_keg_weight) {
+          updateFieldIfNotFocused("emptyKegValue", data.empty_keg_weight);
+        }
+        
+        // Update weight unit display based on beer_left_unit
+        const beerLeftUnit = data.beer_left_unit;
+        if (beerLeftUnit === "lbs" || beerLeftUnit === "kg") {
+          document.getElementById("emptyKegUnit").textContent = beerLeftUnit;
+        }
       }
 
       function updateSettingsDisplay(data) {
@@ -615,6 +644,7 @@
           currentKegData = {};
           document.getElementById("tempOffset").value = "";
           document.getElementById("maxVolume").value = "";
+          document.getElementById("emptyKegValue").value = "";
           document.getElementById("beerStyle").value = "";
           document.getElementById("kegDate").value = "";
           document.getElementById("og").value = "";
@@ -760,6 +790,12 @@
         const value = document.getElementById("knownWeight").value;
         if (!value) { showToast("Please enter a weight value", "warning"); return; }
         sendCommand("calibrate-known-weight", { value });
+      }
+
+      function sendEmptyKegValue() {
+        const value = document.getElementById("emptyKegValue").value;
+        if (!value) { showToast("Please enter an empty keg weight", "warning"); return; }
+        sendCommand("set-empty-keg-value", { value });
       }
 
       function sendTempOffset() {
