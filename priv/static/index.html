@@ -80,6 +80,7 @@
 
             const lastPour = parseFloat(kegData.last_pour) || 0;
             const isPouring = kegData.is_pouring && kegData.is_pouring !== "0";
+            const isConnected = kegData.connected === true || kegData.connected === "true";
 
             // Build card title from beer style, keg date, and ABV (stored locally as my_beer_style, my_keg_date, my_abv)
             const beerStyle = kegData.my_beer_style?.trim();
@@ -101,6 +102,9 @@
             const card = `
                 <div class="card" data-keg-id="${kegData.id}">
                     <span class="temperature-badge">${!isNaN(temperature) ? temperature.toFixed(1) : '--'}${tempUnit}</span>
+                    <span class="icon wifi-indicator ${isConnected ? 'is-connected' : 'is-disconnected'}" title="${isConnected ? 'Connected' : 'Disconnected'}">
+                        ${isConnected ? '📶' : '&nbsp;'}
+                    </span>
                     <span class="pouring-indicator ${isPouring ? 'is-pouring' : ''}" title="${isPouring ? 'POURING' : ''}"></span>
                     ${lastPour > 0 ? `<span class="last-pour-badge">LAST POUR: ${lastPour.toFixed(2)} ${volumeUnit}</span>` : ''}
                     <span class="remaining-badge">REMAINING: ${percentLeft.toFixed(1)}%</span>

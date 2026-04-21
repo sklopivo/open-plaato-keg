@@ -255,6 +255,7 @@ If Docker isn't your preferred method, you can create an [Elixir Release](https:
         "buff-in": "1024"
       },
       "id": "00000000000000000000000000000001",
+      "connected": true,
       "my_beer_style": "IPA",
       "my_keg_date": "12.01.2025",
       "my_og": "1.050",
@@ -339,6 +340,7 @@ Showcase how to interact with WebSocket and REST API.
                 "buff-in": "1024"
               },
               "id": "00000000000000000000000000000001",
+              "connected": true,
               "my_beer_style": "IPA",
               "my_keg_date": "12.01.2025",
               "my_og": "1.050",
@@ -349,6 +351,7 @@ Showcase how to interact with WebSocket and REST API.
       ```
 * **Fields in Response:**
     * `id`: Unique identifier for the keg (32-character hex string from auth token)
+    * `connected`: Boolean indicating if the keg is currently connected
     * `amount_left`: Current amount of beer left in the keg
     * `percent_of_beer_left`: Percentage of beer remaining (0-100)
     * `max_keg_volume`: Maximum keg volume
@@ -420,6 +423,7 @@ Showcase how to interact with WebSocket and REST API.
               "buff-in": "1024"
             },
             "id": "00000000000000000000000000000001",
+            "connected": true,
             "my_beer_style": "IPA",
             "my_keg_date": "12.01.2025",
             "my_og": "1.050",

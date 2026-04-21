@@ -679,6 +679,24 @@ body {
   z-index: 1;
 }
 
+/* WiFi connection indicator */
+.wifi-indicator {
+  position: absolute;
+  top: 8px;
+  right: 35px;
+  font-size: 1rem;
+  z-index: 10;
+}
+
+.wifi-indicator.is-connected {
+  opacity: 1;
+}
+
+.wifi-indicator.is-disconnected {
+  opacity: 0.5;
+  filter: grayscale(100%);
+}
+
 /* Pouring indicator */
 .pouring-indicator {
   position: absolute;
