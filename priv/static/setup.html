@@ -627,7 +627,9 @@
       });
 
       // WebSocket connection for real-time updates
-      const socket = new WebSocket(`ws://${window.location.host}/ws`);
+      // Use wss:// for HTTPS, ws:// for HTTP
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
 
       socket.addEventListener("open", () => {
         console.log("WebSocket connected for setup page");
