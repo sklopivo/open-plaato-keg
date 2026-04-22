@@ -21,6 +21,7 @@ docker run --rm -it -p 1234:1234 -p 8085:8085 ghcr.io/sklopivo/open-plaato-keg:n
 - **Multi-Architecture Docker Images** - Native support for `linux/amd64` and `linux/arm64` (Raspberry Pi 4/5, Apple Silicon, AWS Graviton)
 
 - **Keg Setup Page (`/setup.html`)** - Full-featured web UI to configure and control your keg:
+  - **Keg Details**: Set custom keg name for easy identification
   - **Units & Mode**: Switch between Metric/US units, Weight/Volume display mode
   - **Scale Sensitivity**: Adjust pour detection sensitivity (4 levels)
   - **Calibration**: Tare scale, set empty keg weight, calibrate with known weight, temperature offset
@@ -33,6 +34,7 @@ docker run --rm -it -p 1234:1234 -p 8085:8085 ghcr.io/sklopivo/open-plaato-keg:n
   - `POST /api/kegs/:id/max-keg-volume` - Set max volume
   - `POST /api/kegs/:id/temperature-offset` - Adjust temperature reading
   - `POST /api/kegs/:id/calibrate-known-weight` - Calibrate with known weight
+  - `POST /api/kegs/:id/keg-name` - Set custom keg name (stored locally)
   - `POST /api/kegs/:id/beer-style` - Set beer style name
   - `POST /api/kegs/:id/date` - Set keg date
   - `POST /api/kegs/:id/og` - Set original gravity (format: 1.xxx)
@@ -46,6 +48,7 @@ docker run --rm -it -p 1234:1234 -p 8085:8085 ghcr.io/sklopivo/open-plaato-keg:n
 
 - **Improved Home Page (`/index.html`)**:
   - Real-time updates via WebSocket
+  - Displays custom keg name prominently when set
   - Shows beer style and keg date as card title
   - Temperature badge, pouring indicator, last pour, remaining percentage
   - Modern dark theme with amber accents
@@ -73,7 +76,7 @@ docker run --rm -it -p 1234:1234 -p 8085:8085 ghcr.io/sklopivo/open-plaato-keg:n
 
 - **CO₂ Mode** - Switch to CO₂ monitoring mode (pins not fully decoded)
 - **Scale Sensitivity** - No read feedback from keg for current setting
-- **Beer Style/Date/OG/FG/ABV** - Stored in local database (keg doesn't echo these values back)
+- **Keg Name/Beer Style/Date/OG/FG/ABV** - Stored in local database (keg doesn't echo these values back)
 
 ## Why this exists?
 
@@ -255,6 +258,7 @@ If Docker isn't your preferred method, you can create an [Elixir Release](https:
         "buff-in": "1024"
       },
       "id": "00000000000000000000000000000001",
+      "my_keg_name": "Garage Keg",
       "my_beer_style": "IPA",
       "my_keg_date": "12.01.2025",
       "my_og": "1.050",
@@ -339,6 +343,7 @@ Showcase how to interact with WebSocket and REST API.
                 "buff-in": "1024"
               },
               "id": "00000000000000000000000000000001",
+              "my_keg_name": "Garage Keg",
               "my_beer_style": "IPA",
               "my_keg_date": "12.01.2025",
               "my_og": "1.050",
@@ -371,6 +376,7 @@ Showcase how to interact with WebSocket and REST API.
     * `min_temperature` / `max_temperature`: Temperature alert thresholds
     * `og` / `fg`: Original and final gravity values (from hardware)
     * `internal`: System info object (dev, ver, fw, build, tmpl, h-beat, buff-in)
+    * `my_keg_name`: User-defined keg name (stored locally)
     * `my_beer_style`: User-defined beer style (stored locally)
     * `my_keg_date`: User-defined keg date (stored locally)
     * `my_og`: User-defined original gravity in format 1.xxx (stored locally)
@@ -420,6 +426,7 @@ Showcase how to interact with WebSocket and REST API.
               "buff-in": "1024"
             },
             "id": "00000000000000000000000000000001",
+            "my_keg_name": "Garage Keg",
             "my_beer_style": "IPA",
             "my_keg_date": "12.01.2025",
             "my_og": "1.050",

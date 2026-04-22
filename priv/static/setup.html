@@ -53,6 +53,26 @@
             <p class="help" id="connectionStatus">Loading connected kegs...</p>
           </div>
 
+          <!-- Keg Details Section -->
+          <div class="box section-box">
+            <h2 class="title is-4">Keg Details</h2>
+            
+            <div class="field">
+              <label class="label">Keg Name</label>
+              <p class="help">Give this keg a custom name</p>
+              <div class="control">
+                <div class="field has-addons">
+                  <div class="control is-expanded">
+                    <input class="input" type="text" id="kegName" placeholder="e.g., Garage Keg, Main Tap" />
+                  </div>
+                  <div class="control">
+                    <button class="button is-primary" onclick="sendKegName()">Set</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Units Section -->
           <div class="box section-box">
             <h2 class="title is-4">Units & Mode</h2>
@@ -356,11 +376,32 @@
       const connectionStatus = document.getElementById("connectionStatus");
       let currentKegData = {};
 
+      // Sort kegs by name (if present), then by ID
+      function sortKegs(kegs) {
+        return kegs.sort((a, b) => {
+          // Both have names - sort alphabetically by name
+          if (a.my_keg_name && b.my_keg_name) {
+            return a.my_keg_name.localeCompare(b.my_keg_name);
+          }
+          // Only 'a' has name - 'a' comes first
+          if (a.my_keg_name && !b.my_keg_name) {
+            return -1;
+          }
+          // Only 'b' has name - 'b' comes first
+          if (!a.my_keg_name && b.my_keg_name) {
+            return 1;
+          }
+          // Neither has name - sort by ID
+          return a.id.localeCompare(b.id);
+        });
+      }
+
       // Load connected kegs
       function loadConnectedKegs() {
         const currentValue = kegIdSelect.value; // Preserve current selection
 
-        fetch("/api/kegs/connected")
+        // Fetch full keg data to get names for display
+        fetch("/api/kegs")
           .then((response) => response.json())
           .then((kegs) => {
             kegIdSelect.innerHTML = '<option value="">Select a connected keg...</option>';
@@ -369,12 +410,16 @@
               connectionStatus.textContent = "No kegs connected";
               connectionStatus.className = "help is-warning";
             } else {
-              kegs.forEach((keg, index) => {
+              // Sort kegs before displaying
+              const sortedKegs = sortKegs(kegs);
+              
+              sortedKegs.forEach((keg, index) => {
                 const option = document.createElement("option");
-                option.value = keg;
-                option.text = keg;
+                option.value = keg.id;
+                // Display ID with name in parentheses if name exists
+                option.text = keg.my_keg_name ? `${keg.id} (${keg.my_keg_name})` : keg.id;
                 // Restore selection or auto-select first keg if none selected
-                if (keg === currentValue || (!currentValue && index === 0)) {
+                if (keg.id === currentValue || (!currentValue && index === 0)) {
                   option.selected = true;
                 }
                 kegIdSelect.appendChild(option);
@@ -383,8 +428,8 @@
               connectionStatus.className = "help is-success";
 
               // Load data for auto-selected keg on first load
-              if (!currentValue && kegs.length > 0) {
-                loadKegData(kegs[0]);
+              if (!currentValue && sortedKegs.length > 0) {
+                loadKegData(sortedKegs[0].id);
               }
             }
           })
@@ -421,6 +466,11 @@
       }
 
       function populateFormFields(data) {
+        // Keg name (stored locally as my_keg_name) - only update if not focused
+        if (data.my_keg_name) {
+          updateFieldIfNotFocused("kegName", data.my_keg_name.trim());
+        }
+        
         // Temperature offset - only update if not focused
         if (data.temperature_offset) {
           updateFieldIfNotFocused("tempOffset", data.temperature_offset);
@@ -613,6 +663,7 @@
         } else {
           // Clear form when no keg selected
           currentKegData = {};
+          document.getElementById("kegName").value = "";
           document.getElementById("tempOffset").value = "";
           document.getElementById("maxVolume").value = "";
           document.getElementById("beerStyle").value = "";
@@ -773,6 +824,13 @@
         const value = document.getElementById("maxVolume").value;
         if (!value) { showToast("Please enter a volume", "warning"); return; }
         sendCommand("max-keg-volume", { value });
+      }
+
+      // Keg details commands
+      function sendKegName() {
+        const value = document.getElementById("kegName").value;
+        if (!value) { showToast("Please enter a keg name", "warning"); return; }
+        sendCommand("keg-name", { value });
       }
 
       // Beer info commands
