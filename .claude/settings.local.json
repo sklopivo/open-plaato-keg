@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(mix compile:*)",
+      "Bash(~/.asdf/shims/mix compile:*)",
+      "Bash(where mix:*)",
+      "Bash(gh run:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(mix credo:*)",
+      "Bash(git:*)",
+      "Bash(gh release:*)",
+      "Bash(gh workflow:*)",
+      "Bash(xargs grep:*)",
+      "Bash(xargs ls:*)",
+      "Bash(mix test:*)",
+      "Bash(~/.asdf/shims/mix test:*)",
+      "Bash(cmd:*)",
+      "Bash(echo $PATH)",
+      "Bash(printenv PATH:*)",
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(find /c/users/rig2/Documents/Github/open-plaato-keg -name \"*.kt\" -o -name \"*.gradle\" -o -name \"build.gradle.kts\" 2>/dev/null | head -20)"
+    ]
+  }
+}

@@ -68,16 +68,23 @@ defmodule OpenPlaatoKeg.BlynkProtocol do
   @reverse_blynk_cmds Enum.into(@blynk_cmds, %{}, fn {k, v} -> {v, k} end)
   @reverse_blynk_statuses Enum.into(@blynk_statuses, %{}, fn {k, v} -> {v, k} end)
 
-  def decode(<<cmd::8, msg_id::16, length::16, body::binary>>) do
+  def decode(<<cmd::8, msg_id::16, length::16, body::binary>>, result \\ []) do
     cmd_atom = Map.get(@blynk_cmds, cmd, :unknown_cmd)
 
     case cmd_atom do
       :response ->
         status_atom = Map.get(@blynk_statuses, length, :unknown_status)
-        {:response, msg_id, status_atom, body}
+        [{:response, msg_id, status_atom, body}]
 
       cmd_atom ->
-        {cmd_atom, msg_id, length, body}
+        <<current_body::binary-size(length), rest::binary>> = body
+        new_result = result ++ [{cmd_atom, msg_id, length, current_body}]
+
+        if byte_size(rest) == 0 do
+          new_result
+        else
+          decode(rest, new_result)
+        end
     end
   end
 
@@ -97,8 +104,10 @@ defmodule OpenPlaatoKeg.BlynkProtocol do
     <<0::8, msg_id::16, status::16, length::16, body::binary>>
   end
 
-  def response_success do
-    # this response has been recorded from a real Blynk server
-    <<0, 0, 1, 0, 200>>
+  def response_success(num \\ 1) do
+    status = @reverse_blynk_statuses[:success]
+    body = ""
+
+    <<0::8, num::16, status::16, body::binary>>
   end
 end

@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>History</title>
+    <style>
+      @import url("style.css");
+    </style>
+    <link rel="stylesheet" href="/theme.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+</head>
+<body>
+  <div id="header_container">
+    <div id="page_container" class="container pageEntry"></div>
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <a
+          role="button"
+          class="navbar-burger burger"
+          aria-label="menu"
+          aria-expanded="false"
+          data-target="navbarMenu"
+        >
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </a>
+      </div>
+
+      <div id="navbarMenu" class="navbar-menu">
+        <div class="navbar-start">
+          <a class="navbar-item" href="/">Home</a>
+          <a class="navbar-item" href="/index.html">Kegs</a>
+          <a class="navbar-item is-active" href="/history.html">History</a>
+          <div class="navbar-item has-dropdown" id="configureDropdown">
+            <a class="navbar-link" onclick="toggleDropdown(event)">Configure</a>
+            <div class="navbar-dropdown">
+              <a class="navbar-item" href="/taplist-setup.html">Tap Setup</a>
+              <a class="navbar-item" href="/tap-handles.html">Tap Handles</a>
+              <a class="navbar-item" href="/setup.html">Scale Setup</a>
+              <a class="navbar-item" href="/dashboard-setup.html">Dashboard Setup</a>
+              <a class="navbar-item" href="/server-update.html">Server Update</a>
+              <a class="navbar-item" href="/airlock-setup.html">Airlock Setup</a>
+              <a class="navbar-item" href="/transfer-scales.html">Transfer Scales</a>
+              <a class="navbar-item" href="/beverages.html">Beverages</a>
+            </div>
+          </div>
+        </div>
+        <div class="navbar-end">
+          <span class="navbar-item" id="serverVersion" style="font-size:0.75rem;opacity:0.5;"></span>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <section class="section">
+    <div class="container">
+      <h1 class="title is-1">History</h1>
+
+      <!-- Device type tabs -->
+      <div class="tabs is-boxed" id="deviceTypeTabs">
+        <ul>
+          <li class="is-active" data-type="keg"><a>Kegs</a></li>
+          <li data-type="airlock"><a>Airlocks</a></li>
+        </ul>
+      </div>
+
+      <!-- Controls row -->
+      <div class="columns is-vcentered mb-4">
+        <div class="column is-narrow">
+          <div class="field">
+            <label class="label">Device</label>
+            <div class="control">
+              <div class="select">
+                <select id="deviceSelect">
+                  <option value="">Loading...</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="column is-narrow">
+          <div class="field">
+            <label class="label">Time Range</label>
+            <div class="control">
+              <div class="buttons has-addons" id="rangeButtons">
+                <button class="button" data-range="1h">1h</button>
+                <button class="button" data-range="6h">6h</button>
+                <button class="button is-info" data-range="24h">24h</button>
+                <button class="button" data-range="7d">7d</button>
+                <button class="button" data-range="30d">30d</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="column is-narrow" style="padding-top: 1.75rem;">
+          <button class="button is-light" id="downloadBtn" title="Download CSV">
+            &#8595; Download CSV
+          </button>
+        </div>
+        <div class="column is-narrow" style="padding-top: 1.75rem;">
+          <span id="entryCount" style="font-size:0.875rem; opacity:0.6;"></span>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="box" style="position: relative; min-height: 350px;">
+        <div id="noDataMsg" style="display:none; text-align:center; padding: 4rem 0; color: #aaa;">
+          No data for this device and time range.
+        </div>
+        <canvas id="historyChart"></canvas>
+      </div>
+
+    </div>
+  </section>
+
+  <script>
+    // ----------------------------------------------------------------
+    // State
+    // ----------------------------------------------------------------
+    let deviceType = 'keg';
+    let selectedDevice = null;
+    let selectedRange = '24h';
+    let chart = null;
+    let timeFormat = '12h';
+
+    // ----------------------------------------------------------------
+    // Navbar helpers
+    // ----------------------------------------------------------------
+    function toggleDropdown(e) {
+      e.preventDefault();
+      document.getElementById('configureDropdown').classList.toggle('is-open');
+    }
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#configureDropdown'))
+        document.getElementById('configureDropdown')?.classList.remove('is-open');
+    });
+
+    // Burger menu
+    document.querySelector('.navbar-burger').addEventListener('click', function () {
+      this.classList.toggle('is-active');
+      document.getElementById('navbarMenu').classList.toggle('is-active');
+    });
+
+    // ----------------------------------------------------------------
+    // Server version
+    // ----------------------------------------------------------------
+    fetch('/api/alive')
+      .then(r => r.json())
+      .then(d => {
+        const el = document.getElementById('serverVersion');
+        if (el && d.version) el.textContent = 'v' + d.version;
+      })
+      .catch(() => {});
+
+    fetch('/api/config/time-format')
+      .then(r => r.json())
+      .then(d => { timeFormat = d.time_format || '12h'; })
+      .catch(() => {});
+
+    // ----------------------------------------------------------------
+    // Tabs
+    // ----------------------------------------------------------------
+    document.querySelectorAll('#deviceTypeTabs li').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('#deviceTypeTabs li').forEach(t => t.classList.remove('is-active'));
+        tab.classList.add('is-active');
+        deviceType = tab.dataset.type;
+        loadDevices();
+      });
+    });
+
+    // ----------------------------------------------------------------
+    // Range buttons
+    // ----------------------------------------------------------------
+    document.querySelectorAll('#rangeButtons button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#rangeButtons button').forEach(b => {
+          b.classList.remove('is-info');
+        });
+        btn.classList.add('is-info');
+        selectedRange = btn.dataset.range;
+        if (selectedDevice) loadChart();
+      });
+    });
+
+    // ----------------------------------------------------------------
+    // Device selector
+    // ----------------------------------------------------------------
+    document.getElementById('deviceSelect').addEventListener('change', function () {
+      selectedDevice = this.value || null;
+      if (selectedDevice) loadChart();
+    });
+
+    // ----------------------------------------------------------------
+    // Download CSV
+    // ----------------------------------------------------------------
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      if (!selectedDevice) return;
+      const url = `/api/${deviceType}s/${selectedDevice}/log/csv?range=${selectedRange}`;
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '';
+      a.click();
+    });
+
+    // ----------------------------------------------------------------
+    // Load devices list
+    // ----------------------------------------------------------------
+    async function loadDevices() {
+      destroyChart();
+      document.getElementById('noDataMsg').style.display = 'none';
+      document.getElementById('entryCount').textContent = '';
+
+      const sel = document.getElementById('deviceSelect');
+      sel.innerHTML = '<option value="">Loading...</option>';
+      selectedDevice = null;
+
+      try {
+        const endpoint = deviceType === 'keg' ? '/api/kegs/devices' : '/api/airlocks';
+        const r = await fetch(endpoint);
+        const data = await r.json();
+
+        const devices = deviceType === 'keg'
+          ? data                           // array of id strings
+          : data.map(d => ({ id: d.id, label: d.label || d.id }));
+
+        if (!devices || devices.length === 0) {
+          sel.innerHTML = '<option value="">No devices found</option>';
+          return;
+        }
+
+        sel.innerHTML = '<option value="">Select a device</option>';
+        if (deviceType === 'keg') {
+          // Fetch full keg data to get labels
+          const kegsResp = await fetch('/api/kegs');
+          const kegsData = await kegsResp.json();
+          const labelMap = {};
+          kegsData.forEach((k, index) => {
+            labelMap[k.id] = (k.my_label || '').trim() || `Scale ${index + 1}`;
+          });
+
+          devices.forEach((id, index) => {
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.textContent = labelMap[id] || `Scale ${index + 1}`;
+            sel.appendChild(opt);
+          });
+        } else {
+          devices.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = d.label || d.id;
+            sel.appendChild(opt);
+          });
+        }
+
+        // Auto-select first
+        if (sel.options.length > 1) {
+          sel.selectedIndex = 1;
+          selectedDevice = sel.value;
+          loadChart();
+        }
+      } catch (e) {
+        sel.innerHTML = '<option value="">Error loading devices</option>';
+        console.error(e);
+      }
+    }
+
+    // ----------------------------------------------------------------
+    // Load and render chart
+    // ----------------------------------------------------------------
+    async function loadChart() {
+      if (!selectedDevice) return;
+
+      document.getElementById('noDataMsg').style.display = 'none';
+      document.getElementById('entryCount').textContent = 'Loading…';
+
+      try {
+        const url = `/api/${deviceType}s/${selectedDevice}/log?range=${selectedRange}`;
+        const r = await fetch(url);
+        const entries = await r.json();
+
+        document.getElementById('entryCount').textContent =
+          entries.length === 0 ? '' : `${entries.length} data points`;
+
+        if (entries.length === 0) {
+          document.getElementById('noDataMsg').style.display = 'block';
+          destroyChart();
+          return;
+        }
+
+        renderChart(entries);
+      } catch (e) {
+        document.getElementById('entryCount').textContent = 'Error loading data';
+        console.error(e);
+      }
+    }
+
+    // ----------------------------------------------------------------
+    // Chart rendering
+    // ----------------------------------------------------------------
+    function destroyChart() {
+      if (chart) { chart.destroy(); chart = null; }
+    }
+
+    function renderChart(entries) {
+      destroyChart();
+
+      const ctx = document.getElementById('historyChart').getContext('2d');
+
+      // Timestamps are Unix seconds — convert to milliseconds for Chart.js
+      const labels = entries.map(e => e.timestamp * 1000);
+
+      let datasets, yScales;
+
+      if (deviceType === 'keg') {
+        const amountLeft    = entries.map(e => e.amount_left    != null ? parseFloat(e.amount_left)    : null);
+        const temperature   = entries.map(e => e.keg_temperature != null ? parseFloat(e.keg_temperature) : null);
+        const pctLeft       = entries.map(e => e.percent_of_beer_left != null ? parseFloat(e.percent_of_beer_left) : null);
+
+        // Determine unit label from first non-null value (best effort)
+        const unitLabel = 'Amount Left';
+
+        datasets = [
+          {
+            label: unitLabel,
+            data: amountLeft,
+            borderColor: '#3273dc',
+            backgroundColor: 'rgba(50, 115, 220, 0.08)',
+            fill: true,
+            tension: 0.2,
+            yAxisID: 'yLeft',
+            pointRadius: entries.length > 200 ? 0 : 3,
+            spanGaps: true,
+          },
+          {
+            label: 'Temperature',
+            data: temperature,
+            borderColor: '#e05d44',
+            backgroundColor: 'transparent',
+            tension: 0.2,
+            yAxisID: 'yRight',
+            pointRadius: entries.length > 200 ? 0 : 3,
+            spanGaps: true,
+          },
+          {
+            label: '% Left',
+            data: pctLeft,
+            borderColor: '#48c774',
+            backgroundColor: 'transparent',
+            tension: 0.2,
+            yAxisID: 'yLeft2',
+            pointRadius: 0,
+            spanGaps: true,
+            hidden: true,
+          },
+        ];
+
+        yScales = {
+          yLeft: {
+            type: 'linear',
+            position: 'left',
+            title: { display: true, text: 'Amount Left' },
+          },
+          yRight: {
+            type: 'linear',
+            position: 'right',
+            title: { display: true, text: 'Temperature' },
+            grid: { drawOnChartArea: false },
+          },
+          yLeft2: {
+            type: 'linear',
+            position: 'left',
+            title: { display: true, text: '% Left' },
+            display: false,
+          },
+        };
+      } else {
+        // Airlock
+        const temperature = entries.map(e => e.temperature   != null ? parseFloat(e.temperature)   : null);
+        const bpm         = entries.map(e => e.bubbles_per_min != null ? parseFloat(e.bubbles_per_min) : null);
+
+        datasets = [
+          {
+            label: 'Temperature',
+            data: temperature,
+            borderColor: '#e05d44',
+            backgroundColor: 'rgba(224, 93, 68, 0.08)',
+            fill: true,
+            tension: 0.2,
+            yAxisID: 'yLeft',
+            pointRadius: entries.length > 200 ? 0 : 3,
+            spanGaps: true,
+          },
+          {
+            label: 'Bubbles / min',
+            data: bpm,
+            borderColor: '#3273dc',
+            backgroundColor: 'transparent',
+            tension: 0.2,
+            yAxisID: 'yRight',
+            pointRadius: entries.length > 200 ? 0 : 3,
+            spanGaps: true,
+          },
+        ];
+
+        yScales = {
+          yLeft: {
+            type: 'linear',
+            position: 'left',
+            title: { display: true, text: 'Temperature' },
+          },
+          yRight: {
+            type: 'linear',
+            position: 'right',
+            title: { display: true, text: 'Bubbles / min' },
+            grid: { drawOnChartArea: false },
+          },
+        };
+      }
+
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                title: items => new Date(items[0].parsed.x).toLocaleString([], { hour12: timeFormat !== '24h' }),
+              },
+            },
+          },
+          scales: {
+            x: {
+              type: 'time',
+              time: { tooltipFormat: timeFormat === '24h' ? 'PP HH:mm:ss' : 'PPpp' },
+              title: { display: false },
+              ticks: { maxTicksLimit: 10 },
+            },
+            ...yScales,
+          },
+        },
+      });
+    }
+
+    // ----------------------------------------------------------------
+    // Init
+    // ----------------------------------------------------------------
+    loadDevices();
+  </script>
+</body>
+</html>

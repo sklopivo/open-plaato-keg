@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM elixir:1.16-alpine AS build
+FROM --platform=$TARGETPLATFORM elixir:1.16-alpine AS build
 
 ENV ERL_FLAGS="+JPperf true"
 ENV MIX_ENV=prod
@@ -18,7 +18,7 @@ RUN mix release
 
 
 
-FROM --platform=$BUILDPLATFORM erlang:24-alpine
+FROM --platform=$TARGETPLATFORM erlang:24-alpine
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8

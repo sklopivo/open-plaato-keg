@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tap List Setup - Open Plaato</title>
+  <style>@import url("style.css");</style>
+  <link rel="stylesheet" href="/theme.css">
+  <style>
+    .color-swatches { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+    .swatch {
+      width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+      border: 2px solid transparent; transition: border-color 0.15s, transform 0.15s;
+    }
+    .swatch:hover, .swatch.active { border-color: white; transform: scale(1.15); }
+    .tap-list-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.6rem 0.8rem; border-radius: 6px; margin-bottom: 0.4rem;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      cursor: pointer; transition: background 0.15s;
+    }
+    .tap-list-item:hover { background: rgba(255,255,255,0.08); }
+    .tap-list-item.active { border-color: #3273dc; background: rgba(50,115,220,0.1); }
+    .tap-color-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .tap-list-left { display: flex; align-items: center; gap: 0.6rem; }
+    .tap-list-name { font-weight: 600; }
+    .tap-list-meta { font-size: 0.8rem; color: #888; }
+  </style>
+</head>
+<body>
+  <div id="header_container">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMenu">
+          <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+        </a>
+      </div>
+      <div id="navbarMenu" class="navbar-menu">
+        <div class="navbar-start">
+          <a class="navbar-item" href="/">Home</a>
+          <a class="navbar-item" href="/index.html">Kegs</a>
+          <a class="navbar-item" href="/history.html">History</a>
+          <div class="navbar-item has-dropdown" id="configureDropdown">
+            <a class="navbar-link" onclick="toggleDropdown(event)">Configure</a>
+            <div class="navbar-dropdown">
+              <a class="navbar-item" href="/taplist-setup.html">Tap Setup</a>
+              <a class="navbar-item" href="/tap-handles.html">Tap Handles</a>
+              <a class="navbar-item" href="/setup.html">Scale Setup</a>
+              <a class="navbar-item" href="/dashboard-setup.html">Dashboard Setup</a>
+              <a class="navbar-item" href="/server-update.html">Server Update</a>
+              <a class="navbar-item" href="/airlock-setup.html">Airlock Setup</a>
+              <a class="navbar-item" href="/transfer-scales.html">Transfer Scales</a>
+              <a class="navbar-item" href="/beverages.html">Beverages</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container" style="padding:1.5rem 1rem 3rem;">
+    <h1 class="title is-2">Tap List Setup</h1>
+    <p class="subtitle">Configure beer info and tasting notes for each tap. Data is stored in the beer database.</p>
+
+    <div class="columns">
+      <!-- LEFT: tap list -->
+      <div class="column is-4">
+        <div class="box" style="position:sticky;top:1rem;">
+          <h2 class="title is-5">Taps</h2>
+
+          <div id="tapListContainer">
+            <p class="has-text-grey">Loading…</p>
+          </div>
+
+          <button class="button is-primary is-fullwidth" style="margin-top:1rem;" onclick="addNewTap()">
+            + Add Tap
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT: edit form -->
+      <div class="column is-8">
+        <div class="box" id="editBox" style="display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <h2 class="title is-5" style="margin:0;" id="formTitle">New Tap</h2>
+            <button class="button is-danger is-light is-small" onclick="deleteTap()">Delete Tap</button>
+          </div>
+
+          <div class="field" id="beverageLibraryField">
+            <label class="label">Load from Beverage Library <span class="has-text-grey">(optional)</span></label>
+            <p class="help">Select a stored beverage to auto-fill the fields below.</p>
+            <div class="field has-addons">
+              <div class="control is-expanded">
+                <div class="select is-fullwidth">
+                  <select id="beverageSelect">
+                    <option value="">— select a beverage —</option>
+                  </select>
+                </div>
+              </div>
+              <div class="control">
+                <button class="button is-info" onclick="loadFromBeverage()">Load</button>
+              </div>
+              <div class="control">
+                <a class="button is-light" href="/beverages.html" target="_blank">Manage Library</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="columns">
+            <div class="column is-3">
+              <div class="field">
+                <label class="label">Tap #</label>
+                <div class="control">
+                  <input class="input" type="number" id="tapNumber" min="1" max="99" placeholder="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column">
+              <div class="field">
+                <label class="label">Beer Name <span class="has-text-grey">(required)</span></label>
+                <div class="control">
+                  <input class="input" type="text" id="beerName" placeholder="e.g. Hoppy IPA" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label">Brewery</label>
+            <div class="control">
+              <input class="input" type="text" id="breweryName" placeholder="e.g. Home Brew Co." />
+            </div>
+          </div>
+
+          <div class="columns">
+            <div class="column">
+              <div class="field">
+                <label class="label">Style</label>
+                <div class="control">
+                  <input class="input" type="text" id="beerStyle" placeholder="e.g. IPA, Stout, Lager" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label">ABV %</label>
+                <div class="control">
+                  <input class="input" type="number" id="beerAbv" step="0.1" min="0" max="25" placeholder="6.5" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label">IBU</label>
+                <div class="control">
+                  <input class="input" type="number" id="beerIbu" step="1" min="0" max="300" placeholder="45" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label">Beer Color</label>
+            <div class="control">
+              <input class="input" type="text" id="beerColor" placeholder="#f5a623" style="max-width:180px;" />
+            </div>
+            <div class="color-swatches" id="colorSwatches"></div>
+          </div>
+
+          <div class="field">
+            <label class="label">Description</label>
+            <div class="control">
+              <textarea class="textarea" id="beerDescription" rows="2"
+                placeholder="Short description shown on the tap list…"></textarea>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label">Tasting Notes</label>
+            <p class="help">Shown in quotes on the tap list (e.g. "Citrus, pine, tropical fruits")</p>
+            <div class="control">
+              <textarea class="textarea" id="tastingNotes" rows="2"
+                placeholder="e.g. Citrus, pine, tropical fruits with a clean bitter finish"></textarea>
+            </div>
+          </div>
+
+          <hr />
+
+          <div class="field">
+            <label class="label">Linked Keg Sensor</label>
+            <p class="help">Select the keg scale that provides live fill/temperature data for this tap</p>
+            <div class="control">
+              <div class="select is-fullwidth">
+                <select id="linkedKeg">
+                  <option value="">No sensor linked</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="columns">
+            <div class="column">
+              <div class="field">
+                <label class="label">Date Kegged</label>
+                <p class="help" id="kegDateHelp">Link a keg sensor to load and save this using the existing keg date setting.</p>
+                <div class="control">
+                  <input class="input" type="text" id="kegDate" placeholder="e.g. 25.03.2025" />
+                </div>
+              </div>
+            </div>
+            <div class="column">
+              <div class="field">
+                <label class="label">Expiration Date</label>
+                <p class="help">Stored with this tap configuration.</p>
+                <div class="control">
+                  <input class="input" type="text" id="expirationDate" placeholder="e.g. 25.05.2025" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label">Tap Handle Image</label>
+            <p class="help">Select an uploaded tap handle image. Upload images on the <a href="/tap-handles.html">Tap Handles</a> page.</p>
+            <div class="control">
+              <div class="select is-fullwidth">
+                <select id="handleImage">
+                  <option value="">No image</option>
+                </select>
+              </div>
+            </div>
+            <div id="handlePreview" style="margin-top:0.75rem;display:none;">
+              <img id="handlePreviewImg" src="" alt="handle preview"
+                style="width:100px;height:100px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.05);" />
+            </div>
+          </div>
+
+          <hr />
+
+          <div class="field">
+            <label class="label">open-tap Device ID <span class="has-text-grey" style="font-weight:normal;">(max 6 chars)</span></label>
+            <p class="help">If you use an <strong>open-tap</strong> ESP32 display, enter the Keg ID you configured in the device here. The device will call <code>GET /get_keg/{id}</code> every 10 s.</p>
+            <div class="control">
+              <input class="input" type="text" id="deviceId" maxlength="6" placeholder="e.g. tap1" style="max-width:160px;font-family:monospace;" />
+            </div>
+            <div id="deviceIdCallout" style="display:none;margin-top:0.5rem;background:rgba(50,115,220,0.12);border:1px solid rgba(50,115,220,0.35);border-radius:6px;padding:0.6rem 0.9rem;">
+              <p style="font-size:0.85rem;color:#a0c4ff;">
+                Enter <strong id="deviceIdDisplay" style="font-family:monospace;color:#fff;"></strong>
+                as the <em>Keg ID</em> in your open-tap WiFi setup screen.
+              </p>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:1.5rem;">
+            <div class="control">
+              <button class="button is-primary is-medium" onclick="saveTap()">Save Tap</button>
+              <button class="button is-light" style="margin-left:0.5rem;" onclick="closeForm()">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="emptyState" style="text-align:center;padding:3rem;color:#888;">
+          <p style="font-size:1.2rem;">Select a tap to edit, or click <strong>+ Add Tap</strong></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="notification toast is-hidden"></div>
+
+  <script>
+    // navbar burger
+    document.querySelectorAll('.navbar-burger').forEach(el =>
+      el.addEventListener('click', () => {
+        document.getElementById(el.dataset.target).classList.toggle('is-active');
+        el.classList.toggle('is-active');
+      })
+    );
+    function toggleDropdown(e) {
+      e.preventDefault();
+      document.getElementById('configureDropdown').classList.toggle('is-open');
+    }
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#configureDropdown'))
+        document.getElementById('configureDropdown')?.classList.remove('is-open');
+    });
+
+    const SWATCHES = [
+      '#f5e642','#f5a623','#e8721a','#c0531a','#8b3a0f', // golds / ambers / browns
+      '#e8c96a','#d4a843','#b08a30','#7a5c18','#4a3010', // more beer tones
+      '#6fb8d4','#4a90d9','#2d5fa3','#1a3a6b',           // blues (sour/wheat)
+      '#7bc47b','#4a9e4a','#2d6b2d',                     // green (hops / session)
+      '#e87070','#c0404a','#8b1a24',                     // reds / rosé
+      '#3a2a1a','#241810','#0a0808',                     // dark / stout
+      '#f0f0f0','#c8c8d8',                               // pale / light
+    ];
+
+    let currentTapId = null;
+    let allTaps = [];
+    let allKegs = [];
+    let allHandles = [];
+    let allBeverages = [];
+
+    function showToast(msg, type = 'info') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `notification toast is-${type}`;
+      setTimeout(() => t.classList.add('is-hidden'), 3000);
+    }
+
+    // ── Color swatches ────────────────────────────
+    function initSwatches() {
+      const container = document.getElementById('colorSwatches');
+      container.innerHTML = '';
+      SWATCHES.forEach(c => {
+        const s = document.createElement('div');
+        s.className = 'swatch';
+        s.style.background = c;
+        s.title = c;
+        s.onclick = () => {
+          document.getElementById('beerColor').value = c;
+          document.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
+          s.classList.add('active');
+        };
+        container.appendChild(s);
+      });
+    }
+
+    function updateActiveSwatch(color) {
+      document.querySelectorAll('.swatch').forEach(s => {
+        s.classList.toggle('active', s.style.background === color || s.title === color);
+      });
+    }
+
+    document.addEventListener('input', ev => {
+      if (ev.target.id === 'beerColor') updateActiveSwatch(ev.target.value);
+    });
+
+    // ── open-tap device ID callout ────────────────
+    function updateDeviceIdCallout(val) {
+      const callout = document.getElementById('deviceIdCallout');
+      const display = document.getElementById('deviceIdDisplay');
+      if (val && val.trim()) {
+        display.textContent = val.trim();
+        callout.style.display = '';
+      } else {
+        callout.style.display = 'none';
+      }
+    }
+
+    document.addEventListener('input', ev => {
+      if (ev.target.id === 'deviceId') updateDeviceIdCallout(ev.target.value);
+    });
+
+    document.addEventListener('change', ev => {
+      if (ev.target.id === 'linkedKeg') {
+        loadLinkedKegDate(ev.target.value);
+      }
+    });
+
+    // ── Handle image preview ──────────────────────
+    document.addEventListener('change', ev => {
+      if (ev.target.id === 'handleImage') {
+        const val = ev.target.value;
+        const preview = document.getElementById('handlePreview');
+        const img = document.getElementById('handlePreviewImg');
+        if (val) {
+          img.src = `/uploads/tap-handles/${encodeURIComponent(val)}`;
+          preview.style.display = 'block';
+        } else {
+          preview.style.display = 'none';
+        }
+      }
+    });
+
+    // ── Load all data ─────────────────────────────
+    async function loadAll() {
+      const [tapsRes, kegsRes, handlesRes, bevsRes] = await Promise.all([
+        fetch('/api/taps'),
+        fetch('/api/kegs'),
+        fetch('/api/tap-handles'),
+        fetch('/api/beverages'),
+      ]);
+      allTaps      = await tapsRes.json();
+      allKegs      = await kegsRes.json();
+      allHandles   = await handlesRes.json();
+      allBeverages = await bevsRes.json();
+      renderTapList();
+      populateDropdowns();
+    }
+
+    function loadBeverages() {
+      const sel = document.getElementById('beverageSelect');
+      const prev = sel.value;
+      sel.innerHTML = '<option value="">— select a beverage —</option>';
+      allBeverages.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = b.name + (b.style ? ` (${b.style})` : '') + (b.abv ? ` · ${b.abv}%` : '');
+        opt.dataset.beverage = JSON.stringify(b);
+        sel.appendChild(opt);
+      });
+      if (prev) sel.value = prev;
+    }
+
+    function loadFromBeverage() {
+      const sel = document.getElementById('beverageSelect');
+      const opt = sel.options[sel.selectedIndex];
+      if (!opt || !opt.dataset.beverage) {
+        showToast('Select a beverage first', 'warning');
+        return;
+      }
+      const b = JSON.parse(opt.dataset.beverage);
+      if (b.name)          document.getElementById('beerName').value        = b.name;
+      if (b.brewery)       document.getElementById('breweryName').value     = b.brewery;
+      if (b.style)         document.getElementById('beerStyle').value       = b.style;
+      if (b.abv)           document.getElementById('beerAbv').value         = b.abv;
+      if (b.ibu)           document.getElementById('beerIbu').value         = b.ibu;
+      if (b.color)         document.getElementById('beerColor').value       = b.color;
+      if (b.description)   document.getElementById('beerDescription').value = b.description;
+      if (b.tasting_notes) document.getElementById('tastingNotes').value    = b.tasting_notes;
+      updateActiveSwatch(b.color || '#c9a849');
+      showToast('Loaded from beverage library', 'success');
+    }
+
+    function updateKegDateFieldState(kegId) {
+      const input = document.getElementById('kegDate');
+      const help = document.getElementById('kegDateHelp');
+      if (!input || !help) return;
+
+      if (kegId) {
+        input.disabled = false;
+        help.textContent = 'Saved to the linked keg using the existing keg date endpoint.';
+      } else {
+        input.disabled = true;
+        input.value = '';
+        help.textContent = 'Link a keg sensor to load and save this using the existing keg date setting.';
+      }
+    }
+
+    async function loadLinkedKegDate(kegId) {
+      updateKegDateFieldState(kegId);
+      if (!kegId) return;
+
+      try {
+        const res = await fetch(`/api/kegs/${encodeURIComponent(kegId)}`);
+        if (!res.ok) throw new Error(await res.text());
+        const keg = await res.json();
+        document.getElementById('kegDate').value = (keg.my_keg_date || '').trim();
+      } catch (e) {
+        showToast('Failed to load keg date: ' + e.message, 'danger');
+      }
+    }
+
+    async function saveLinkedKegDate(kegId, value) {
+      if (!kegId) return;
+
+      const res = await fetch(`/api/kegs/${encodeURIComponent(kegId)}/date`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ value }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text);
+      }
+    }
+
+    function renderTapList() {
+      const container = document.getElementById('tapListContainer');
+      if (!allTaps.length) {
+        container.innerHTML = '<p class="has-text-grey" style="font-size:0.9rem;">No taps yet — click Add Tap</p>';
+        return;
+      }
+      container.innerHTML = '';
+      allTaps.forEach(tap => {
+        const item = document.createElement('div');
+        item.className = 'tap-list-item' + (tap.id === currentTapId ? ' active' : '');
+        item.onclick = () => editTap(tap.id);
+        item.innerHTML = `
+          <div class="tap-list-left">
+            <div class="tap-color-dot" style="background:${tap.color || '#c9a849'};"></div>
+            <div>
+              <div class="tap-list-name">Tap ${tap.tap_number || '?'} — ${tap.name || 'Unnamed'}</div>
+              <div class="tap-list-meta">${tap.style || ''}${tap.abv ? ' · '+tap.abv+'%' : ''}</div>
+            </div>
+          </div>
+          <span style="font-size:0.75rem;color:#666;">#${tap.id}</span>`;
+        container.appendChild(item);
+      });
+    }
+
+    function populateDropdowns() {
+      // Kegs
+      const kegSel = document.getElementById('linkedKeg');
+      const prev = kegSel.value;
+      kegSel.innerHTML = '<option value="">No sensor linked</option>';
+      allKegs.forEach((k, index) => {
+        const opt = document.createElement('option');
+        opt.value = k.id;
+        const label = (k.my_label || '').trim() || `Scale ${index + 1}`;
+        opt.textContent = `${label} ${k.beer_left_unit || ''} ${k.amount_left ? '('+parseFloat(k.amount_left).toFixed(1)+' left)' : ''}`;
+        kegSel.appendChild(opt);
+      });
+      if (prev) kegSel.value = prev;
+
+      // Handles
+      const hSel = document.getElementById('handleImage');
+      const hPrev = hSel.value;
+      hSel.innerHTML = '<option value="">No image</option>';
+      allHandles.forEach(h => {
+        const opt = document.createElement('option');
+        opt.value = h.filename;
+        opt.textContent = h.filename;
+        hSel.appendChild(opt);
+      });
+      if (hPrev) hSel.value = hPrev;
+    }
+
+    // ── Add new tap ───────────────────────────────
+    function addNewTap() {
+      currentTapId = 'tap_' + Date.now();
+      const maxNum = allTaps.reduce((m, t) => Math.max(m, t.tap_number || 0), 0);
+      openForm({
+        id: currentTapId,
+        tap_number: maxNum + 1,
+        name: '', brewery: '', style: '', abv: '', ibu: '',
+        color: '#c9a849', description: '', tasting_notes: '',
+        keg_id: '', handle_image: '', device_id: '', expiration_date: ''
+      });
+    }
+
+    // ── Edit existing tap ─────────────────────────
+    function editTap(id) {
+      currentTapId = id;
+      const tap = allTaps.find(t => t.id === id);
+      if (tap) openForm(tap);
+      renderTapList();
+    }
+
+    function openForm(tap) {
+      document.getElementById('editBox').style.display = '';
+      document.getElementById('emptyState').style.display = 'none';
+      document.getElementById('formTitle').textContent = tap.name ? `Editing: ${tap.name}` : 'New Tap';
+      document.getElementById('beverageSelect').value = '';
+      loadBeverages();
+
+      document.getElementById('tapNumber').value    = tap.tap_number || '';
+      document.getElementById('beerName').value     = tap.name || '';
+      document.getElementById('breweryName').value  = tap.brewery || '';
+      document.getElementById('beerStyle').value    = tap.style || '';
+      document.getElementById('beerAbv').value      = tap.abv || '';
+      document.getElementById('beerIbu').value      = tap.ibu || '';
+      document.getElementById('beerColor').value    = tap.color || '#c9a849';
+      document.getElementById('beerDescription').value = tap.description || '';
+      document.getElementById('tastingNotes').value = tap.tasting_notes || '';
+      document.getElementById('linkedKeg').value    = tap.keg_id || '';
+      document.getElementById('expirationDate').value = tap.expiration_date || '';
+      document.getElementById('handleImage').value  = tap.handle_image || '';
+      document.getElementById('deviceId').value     = tap.device_id || '';
+      updateDeviceIdCallout(tap.device_id || '');
+      loadLinkedKegDate(tap.keg_id || '');
+
+      updateActiveSwatch(tap.color || '#c9a849');
+
+      // handle preview
+      const preview = document.getElementById('handlePreview');
+      const pImg    = document.getElementById('handlePreviewImg');
+      if (tap.handle_image) {
+        pImg.src = `/uploads/tap-handles/${encodeURIComponent(tap.handle_image)}`;
+        preview.style.display = 'block';
+      } else {
+        preview.style.display = 'none';
+      }
+    }
+
+    function closeForm() {
+      currentTapId = null;
+      document.getElementById('editBox').style.display = 'none';
+      document.getElementById('emptyState').style.display = '';
+      renderTapList();
+    }
+
+    // ── Save ──────────────────────────────────────
+    async function saveTap() {
+      const name = document.getElementById('beerName').value.trim();
+      if (!name) { showToast('Beer name is required', 'warning'); return; }
+
+      const body = {
+        tap_number:    parseInt(document.getElementById('tapNumber').value) || 1,
+        name,
+        brewery:       document.getElementById('breweryName').value.trim(),
+        style:         document.getElementById('beerStyle').value.trim(),
+        abv:           document.getElementById('beerAbv').value.trim(),
+        ibu:           document.getElementById('beerIbu').value.trim(),
+        color:         document.getElementById('beerColor').value.trim() || '#c9a849',
+        description:   document.getElementById('beerDescription').value.trim(),
+        tasting_notes: document.getElementById('tastingNotes').value.trim(),
+        expiration_date: document.getElementById('expirationDate').value.trim(),
+        keg_id:        document.getElementById('linkedKeg').value || null,
+        handle_image:  document.getElementById('handleImage').value || null,
+        device_id:     document.getElementById('deviceId').value.trim().slice(0, 6) || null,
+      };
+
+      try {
+        if (body.keg_id) {
+          await saveLinkedKegDate(body.keg_id, document.getElementById('kegDate').value.trim());
+        }
+        const res = await fetch(`/api/taps/${currentTapId}`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        showToast('Tap saved!', 'success');
+        await loadAll();
+        // re-select to refresh form title
+        const saved = allTaps.find(t => t.id === currentTapId);
+        if (saved) document.getElementById('formTitle').textContent = `Editing: ${saved.name}`;
+        renderTapList();
+      } catch (e) {
+        showToast('Save failed: ' + e.message, 'danger');
+      }
+    }
+
+    // ── Delete ────────────────────────────────────
+    async function deleteTap() {
+      if (!currentTapId) return;
+      if (!confirm('Delete this tap? This cannot be undone.')) return;
+      try {
+        await fetch(`/api/taps/${currentTapId}/delete`, {method: 'POST'});
+        showToast('Tap deleted', 'success');
+        currentTapId = null;
+        document.getElementById('editBox').style.display = 'none';
+        document.getElementById('emptyState').style.display = '';
+        await loadAll();
+      } catch (e) {
+        showToast('Delete failed', 'danger');
+      }
+    }
+
+    initSwatches();
+    updateKegDateFieldState('');
+    loadAll();
+  </script>
+</body>
+</html>

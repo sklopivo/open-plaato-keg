@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Airlock Setup - Open Plaato</title>
+  <style>@import url("style.css");</style>
+  <link rel="stylesheet" href="/theme.css">
+</head>
+<body>
+  <div id="header_container">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMenu">
+          <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+        </a>
+      </div>
+      <div id="navbarMenu" class="navbar-menu">
+        <div class="navbar-start">
+          <a class="navbar-item" href="/">Home</a>
+          <a class="navbar-item" href="/index.html">Kegs</a>
+          <a class="navbar-item" href="/history.html">History</a>
+          <div class="navbar-item has-dropdown" id="configureDropdown">
+            <a class="navbar-link" onclick="toggleDropdown(event)">Configure</a>
+            <div class="navbar-dropdown">
+              <a class="navbar-item" href="/taplist-setup.html">Tap Setup</a>
+              <a class="navbar-item" href="/tap-handles.html">Tap Handles</a>
+              <a class="navbar-item" href="/setup.html">Scale Setup</a>
+              <a class="navbar-item" href="/dashboard-setup.html">Dashboard Setup</a>
+              <a class="navbar-item" href="/server-update.html">Server Update</a>
+              <a class="navbar-item" href="/airlock-setup.html">Airlock Setup</a>
+              <a class="navbar-item" href="/transfer-scales.html">Transfer Scales</a>
+              <a class="navbar-item" href="/beverages.html">Beverages</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <div id="page_container" class="container pageEntry">
+    <section class="section">
+      <div class="container">
+        <h1 class="title is-2">Airlock Setup</h1>
+        <p class="subtitle">Configure Plaato Airlock devices — labels, Grainfather, and Brewfather integration.</p>
+
+        <!-- Airlock Support Toggle -->
+        <div class="box section-box">
+          <h2 class="title is-4">Airlock Support</h2>
+          <p class="help">Enable or disable Plaato Airlock device processing on this server.</p>
+          <div class="field">
+            <div class="control">
+              <div class="buttons has-addons">
+                <button class="button airlock-toggle-btn" id="airlockSupportOn" onclick="setAirlockEnabled(true)">
+                  <span>Enabled</span>
+                </button>
+                <button class="button airlock-toggle-btn" id="airlockSupportOff" onclick="setAirlockEnabled(false)">
+                  <span>Disabled</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Airlock Selector + Label -->
+        <div class="box section-box">
+          <h2 class="title is-4">Device Settings</h2>
+          <p class="help" style="margin-bottom:1rem;">Select an airlock to configure its label and integration settings. Airlocks appear once they have sent data to the server.</p>
+
+          <div class="field">
+            <label class="label" for="airlockId">Select Airlock</label>
+            <div class="control">
+              <div class="select is-fullwidth">
+                <select id="airlockId" name="airlockId">
+                  <option value="">Select an airlock...</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label">Label</label>
+            <div class="control">
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <input class="input" type="text" id="airlockLabel" placeholder="e.g., Primary, Secondary" />
+                </div>
+                <div class="control">
+                  <button class="button is-primary" onclick="sendAirlockLabel()">Set</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grainfather -->
+        <div class="box section-box">
+          <h2 class="title is-4">Grainfather</h2>
+          <p class="help">Send this airlock's data to the Grainfather community web app (at most every 15 minutes).</p>
+
+          <div class="field">
+            <label class="label">
+              <input type="checkbox" id="grainfatherEnabled" />
+              <span style="margin-left: 0.5rem;">Send to Grainfather</span>
+            </label>
+          </div>
+
+          <div class="columns">
+            <div class="column">
+              <div class="field">
+                <label class="label">Temperature unit</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select id="grainfatherUnit">
+                      <option value="celsius">Celsius</option>
+                      <option value="fahrenheit">Fahrenheit</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="column">
+              <div class="field">
+                <label class="label">Specific gravity</label>
+                <p class="help">Required by API; use your current reading or default 1.0</p>
+                <div class="control">
+                  <input class="input" type="number" id="grainfatherSG" placeholder="1.0" step="0.001" min="0.9" max="1.2" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label">Grainfather URL</label>
+            <p class="help">Endpoint URL from your Grainfather session (e.g. https://local.community.grainfather.com/iot/…/custom).</p>
+            <div class="control">
+              <input class="input" type="text" id="grainfatherUrl" placeholder="https://local.community.grainfather.com/iot/…/custom" />
+            </div>
+          </div>
+
+          <div class="field">
+            <button class="button is-primary" onclick="sendGrainfatherSettings()">Save Grainfather Settings</button>
+          </div>
+        </div>
+
+        <!-- Brewfather -->
+        <div class="box section-box">
+          <h2 class="title is-4">Brewfather</h2>
+          <p class="help">Send this airlock's data to Brewfather via custom stream (at most every 15 minutes).</p>
+
+          <div class="field">
+            <label class="label">
+              <input type="checkbox" id="brewfatherEnabled" />
+              <span style="margin-left: 0.5rem;">Send to Brewfather</span>
+            </label>
+          </div>
+
+          <div class="columns">
+            <div class="column">
+              <div class="field">
+                <label class="label">Temperature unit</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select id="brewfatherUnit">
+                      <option value="celsius">Celsius</option>
+                      <option value="fahrenheit">Fahrenheit</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="column">
+              <div class="field">
+                <label class="label">Specific gravity</label>
+                <p class="help">Current SG reading or default 1.0</p>
+                <div class="control">
+                  <input class="input" type="number" id="brewfatherSG" placeholder="1.0" step="0.001" min="0.9" max="1.2" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="columns">
+            <div class="column">
+              <div class="field">
+                <label class="label">Original gravity <span class="has-text-grey">(optional)</span></label>
+                <div class="control">
+                  <input class="input" type="number" id="brewfatherOG" placeholder="e.g. 1.055" step="0.001" min="0.9" max="1.2" />
+                </div>
+              </div>
+            </div>
+            <div class="column">
+              <div class="field">
+                <label class="label">Batch volume L <span class="has-text-grey">(optional)</span></label>
+                <div class="control">
+                  <input class="input" type="number" id="brewfatherBatchVolume" placeholder="e.g. 20" step="0.1" min="0" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label">Brewfather stream URL</label>
+            <p class="help">Custom stream URL from Brewfather (e.g. http://log.brewfather.net/stream?id=XXXX).</p>
+            <div class="control">
+              <input class="input" type="text" id="brewfatherUrl" placeholder="http://log.brewfather.net/stream?id=XXXX" />
+            </div>
+          </div>
+
+          <div class="field">
+            <button class="button is-primary" onclick="sendBrewfatherSettings()">Save Brewfather Settings</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="notification toast is-hidden"></div>
+
+  <script>
+    // Navbar
+    document.querySelectorAll('.navbar-burger').forEach(el =>
+      el.addEventListener('click', () => {
+        document.getElementById(el.dataset.target).classList.toggle('is-active');
+        el.classList.toggle('is-active');
+      })
+    );
+    function toggleDropdown(e) {
+      e.preventDefault();
+      document.getElementById('configureDropdown').classList.toggle('is-open');
+    }
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#configureDropdown'))
+        document.getElementById('configureDropdown')?.classList.remove('is-open');
+    });
+
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `notification toast is-${type}`;
+      setTimeout(() => toast.classList.add('is-hidden'), 3000);
+    }
+
+    const airlockIdSelect = document.getElementById('airlockId');
+
+    function loadAirlocks() {
+      fetch('/api/airlocks')
+        .then(r => r.json())
+        .then(airlocks => {
+          const currentValue = airlockIdSelect.value;
+          airlockIdSelect.innerHTML = '<option value="">Select an airlock...</option>';
+          airlocks.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a.id;
+            opt.textContent = (a.label && a.label.trim()) ? a.label.trim() : a.id;
+            if (a.id === currentValue) opt.selected = true;
+            airlockIdSelect.appendChild(opt);
+          });
+          if (currentValue && airlocks.some(a => a.id === currentValue)) {
+            loadAirlockData(currentValue);
+          }
+        })
+        .catch(() => {});
+    }
+
+    function loadAirlockData(airlockId) {
+      if (!airlockId) return;
+      fetch(`/api/airlocks/${airlockId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (document.activeElement !== document.getElementById('airlockLabel')) {
+            document.getElementById('airlockLabel').value = (data.label || '').trim();
+          }
+          document.getElementById('grainfatherEnabled').checked = data.grainfather_enabled === 'true';
+          document.getElementById('grainfatherUnit').value = data.grainfather_unit === 'fahrenheit' ? 'fahrenheit' : 'celsius';
+          const gfSg = data.grainfather_specific_gravity;
+          document.getElementById('grainfatherSG').value = (gfSg != null && gfSg !== '') ? String(gfSg) : '1';
+          document.getElementById('grainfatherUrl').value = data.grainfather_url || '';
+          document.getElementById('brewfatherEnabled').checked = data.brewfather_enabled === 'true';
+          document.getElementById('brewfatherUnit').value = data.brewfather_temp_unit === 'fahrenheit' ? 'fahrenheit' : 'celsius';
+          const bfSg = data.brewfather_sg;
+          document.getElementById('brewfatherSG').value = (bfSg != null && bfSg !== '') ? String(bfSg) : '1';
+          document.getElementById('brewfatherOG').value = data.brewfather_og || '';
+          document.getElementById('brewfatherBatchVolume').value = data.brewfather_batch_volume || '';
+          document.getElementById('brewfatherUrl').value = data.brewfather_url || '';
+        })
+        .catch(() => {});
+    }
+
+    airlockIdSelect.addEventListener('change', () => {
+      const id = airlockIdSelect.value;
+      if (id) {
+        loadAirlockData(id);
+      } else {
+        document.getElementById('airlockLabel').value = '';
+        document.getElementById('grainfatherEnabled').checked = false;
+        document.getElementById('grainfatherUnit').value = 'celsius';
+        document.getElementById('grainfatherSG').value = '1';
+        document.getElementById('grainfatherUrl').value = '';
+        document.getElementById('brewfatherEnabled').checked = false;
+        document.getElementById('brewfatherUnit').value = 'celsius';
+        document.getElementById('brewfatherSG').value = '1';
+        document.getElementById('brewfatherOG').value = '';
+        document.getElementById('brewfatherBatchVolume').value = '';
+        document.getElementById('brewfatherUrl').value = '';
+      }
+    });
+
+    function sendAirlockLabel() {
+      const airlockId = airlockIdSelect.value;
+      if (!airlockId) { showToast('Please select an airlock first', 'warning'); return; }
+      const value = document.getElementById('airlockLabel').value.trim();
+      fetch(`/api/airlocks/${airlockId}/label`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: value || '' }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'ok') { showToast('Label saved', 'success'); loadAirlocks(); }
+          else showToast(`Error: ${data.error}`, 'danger');
+        })
+        .catch(err => showToast(`Error: ${err.message}`, 'danger'));
+    }
+
+    function sendGrainfatherSettings() {
+      const airlockId = airlockIdSelect.value;
+      if (!airlockId) { showToast('Please select an airlock first', 'warning'); return; }
+      const enabled = document.getElementById('grainfatherEnabled').checked;
+      const unit = document.getElementById('grainfatherUnit').value;
+      const sg = document.getElementById('grainfatherSG').value.trim() || '1';
+      const url = document.getElementById('grainfatherUrl').value.trim();
+      fetch(`/api/airlocks/${airlockId}/grainfather`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled, unit, specific_gravity: sg, url }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'ok') showToast('Grainfather settings saved', 'success');
+          else showToast(`Error: ${data.error}`, 'danger');
+        })
+        .catch(err => showToast(`Error: ${err.message}`, 'danger'));
+    }
+
+    function sendBrewfatherSettings() {
+      const airlockId = airlockIdSelect.value;
+      if (!airlockId) { showToast('Please select an airlock first', 'warning'); return; }
+      const enabled = document.getElementById('brewfatherEnabled').checked;
+      const unit = document.getElementById('brewfatherUnit').value;
+      const sg = document.getElementById('brewfatherSG').value.trim() || '1';
+      const og = document.getElementById('brewfatherOG').value.trim();
+      const batchVolume = document.getElementById('brewfatherBatchVolume').value.trim();
+      const url = document.getElementById('brewfatherUrl').value.trim();
+      fetch(`/api/airlocks/${airlockId}/brewfather`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled, unit, specific_gravity: sg, og: og || null, batch_volume: batchVolume || null, url }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'ok') showToast('Brewfather settings saved', 'success');
+          else showToast(`Error: ${data.error}`, 'danger');
+        })
+        .catch(err => showToast(`Error: ${err.message}`, 'danger'));
+    }
+
+    function loadGlobalConfig() {
+      fetch('/api/config')
+        .then(r => r.json())
+        .then(config => {
+          const enabled = config.airlock_enabled !== false;
+          document.getElementById('airlockSupportOn').className =
+            'button airlock-toggle-btn' + (enabled ? ' is-success is-selected' : '');
+          document.getElementById('airlockSupportOff').className =
+            'button airlock-toggle-btn' + (!enabled ? ' is-danger is-selected' : '');
+        })
+        .catch(err => console.error('Error loading config:', err));
+    }
+
+    function setAirlockEnabled(enabled) {
+      fetch('/api/config/airlock-enabled', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+      })
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+          if (!ok) { showToast('Failed to save: ' + (data.error || 'unknown error'), 'danger'); return; }
+          loadGlobalConfig();
+          showToast(enabled ? 'Airlock support enabled' : 'Airlock support disabled', 'success');
+        })
+        .catch(() => showToast('Failed to update setting — check server logs', 'danger'));
+    }
+
+    loadAirlocks();
+    setInterval(loadAirlocks, 10000);
+    loadGlobalConfig();
+  </script>
+</body>
+</html>

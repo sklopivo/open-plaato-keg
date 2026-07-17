@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Server Update - Open Plaato</title>
+  <style>@import url("style.css");</style>
+  <link rel="stylesheet" href="/theme.css">
+</head>
+<body>
+  <div id="header_container">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMenu">
+          <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+        </a>
+      </div>
+      <div id="navbarMenu" class="navbar-menu">
+        <div class="navbar-start">
+          <a class="navbar-item" href="/">Home</a>
+          <a class="navbar-item" href="/index.html">Kegs</a>
+          <a class="navbar-item" href="/history.html">History</a>
+          <div class="navbar-item has-dropdown" id="configureDropdown">
+            <a class="navbar-link" onclick="toggleDropdown(event)">Configure</a>
+            <div class="navbar-dropdown">
+              <a class="navbar-item" href="/taplist-setup.html">Tap Setup</a>
+              <a class="navbar-item" href="/tap-handles.html">Tap Handles</a>
+              <a class="navbar-item" href="/setup.html">Scale Setup</a>
+              <a class="navbar-item" href="/dashboard-setup.html">Dashboard Setup</a>
+              <a class="navbar-item" href="/server-update.html">Server Update</a>
+              <a class="navbar-item" href="/airlock-setup.html">Airlock Setup</a>
+              <a class="navbar-item" href="/transfer-scales.html">Transfer Scales</a>
+              <a class="navbar-item" href="/beverages.html">Beverages</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <div id="page_container" class="container pageEntry">
+    <section class="section">
+      <div class="container">
+        <h1 class="title is-2">Server Update</h1>
+        <p class="subtitle">Configure Watchtower and trigger server software updates.</p>
+
+        <div class="box section-box">
+          <h2 class="title is-4">Watchtower</h2>
+          <p class="subtitle is-6">Trigger a Watchtower container update. Requires Watchtower running with HTTP API enabled.</p>
+
+          <div class="field">
+            <label class="label">Watchtower URL</label>
+            <div class="control">
+              <input class="input" type="text" id="watchtowerUrl" placeholder="http://watchtower:8080" />
+            </div>
+            <p class="help">The base URL of your Watchtower instance, such as <code>http://watchtower:8080</code> or your server IP.</p>
+          </div>
+
+          <div class="field">
+            <label class="label">API Token</label>
+            <div class="control">
+              <input class="input" type="password" id="watchtowerToken" placeholder="Required when using WATCHTOWER_HTTP_API_TOKEN" />
+            </div>
+            <p class="help">Use the same token configured in <code>WATCHTOWER_HTTP_API_TOKEN</code>.</p>
+          </div>
+
+          <div class="field is-grouped">
+            <div class="control">
+              <button class="button is-info" onclick="saveWatchtowerConfig()">Save</button>
+            </div>
+            <div class="control">
+              <button class="button is-warning" id="triggerUpdateBtn" onclick="triggerUpdate()">Trigger Update</button>
+            </div>
+          </div>
+          <p class="help" id="updateStatus"></p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="notification toast is-hidden"></div>
+
+  <script>
+    document.querySelectorAll('.navbar-burger').forEach(el =>
+      el.addEventListener('click', () => {
+        document.getElementById(el.dataset.target).classList.toggle('is-active');
+        el.classList.toggle('is-active');
+      })
+    );
+
+    function toggleDropdown(e) {
+      e.preventDefault();
+      document.getElementById('configureDropdown').classList.toggle('is-open');
+    }
+
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#configureDropdown')) {
+        document.getElementById('configureDropdown')?.classList.remove('is-open');
+      }
+    });
+
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `notification toast is-${type}`;
+      setTimeout(() => {
+        toast.classList.add('is-hidden');
+      }, 3000);
+    }
+
+    async function loadWatchtowerConfig() {
+      try {
+        const res = await fetch('/api/config/watchtower');
+        const data = await res.json();
+        document.getElementById('watchtowerUrl').value = data.url || '';
+        if (data.has_token) {
+          document.getElementById('watchtowerToken').placeholder = '(token saved — leave blank to keep)';
+        }
+      } catch (_) {}
+    }
+
+    async function saveWatchtowerConfig() {
+      const url = document.getElementById('watchtowerUrl').value.trim();
+      const token = document.getElementById('watchtowerToken').value.trim();
+      try {
+        const res = await fetch('/api/config/watchtower', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, token }),
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          showToast('Watchtower config saved', 'success');
+          document.getElementById('watchtowerToken').value = '';
+          if (data.has_token) {
+            document.getElementById('watchtowerToken').placeholder = '(token saved — leave blank to keep)';
+          }
+        } else {
+          showToast('Failed to save config', 'danger');
+        }
+      } catch (err) {
+        showToast(`Error: ${err.message}`, 'danger');
+      }
+    }
+
+    async function triggerUpdate() {
+      const btn = document.getElementById('triggerUpdateBtn');
+      const status = document.getElementById('updateStatus');
+      btn.classList.add('is-loading');
+      btn.disabled = true;
+      status.textContent = '';
+      try {
+        const res = await fetch('/api/system/update', { method: 'POST' });
+        if (res.ok) {
+          const message = 'Update triggered. Watchtower will pull and restart the container shortly.';
+          status.textContent = message;
+          status.className = 'help has-text-success';
+          showToast(message, 'success');
+        } else {
+          const data = await res.json().catch(() => ({}));
+          const detail = data.detail ? ` (${data.detail})` : '';
+          const message = (data.error || 'Update failed') + detail;
+          status.textContent = message;
+          status.className = 'help has-text-danger';
+          showToast(message, 'danger');
+        }
+      } catch (err) {
+        const message = `Error: ${err.message}`;
+        status.textContent = message;
+        status.className = 'help has-text-danger';
+        showToast(message, 'danger');
+      } finally {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+      }
+    }
+
+    loadWatchtowerConfig();
+  </script>
+</body>
+</html>

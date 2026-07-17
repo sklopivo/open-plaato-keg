@@ -1,5 +1,37 @@
 version: "3.6"
 services:
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Mount host Docker credentials for private registries (e.g. GHCR):
+      # - /root/.docker/config.json:/config.json
+    environment:
+      - WATCHTOWER_HTTP_API_UPDATE=true
+      # Optional: set a token and enter it in the Keg Setup UI
+      # - WATCHTOWER_HTTP_API_TOKEN=changeme
+      - WATCHTOWER_POLL_INTERVAL=3600
+    ports:
+      - 8080:8080
+
+  open_plaato_keg:
+    image: ghcr.io/darkjaeger/open-plaato-keg:latest
+    container_name: open_plaato_keg
+    ports:
+      - 1234:1234
+      - 8085:8085
+    restart: always
+    volumes:
+      # Persist keg data across container updates.
+      # Unraid: change host path to /mnt/user/appdata/open-plaato-keg:/app/priv/db
+      - ./data:/app/priv/db
+    environment:
+      - DATABASE_FILE_PATH=/db/keg_data.bin
+      - KEG_LISTENER_PORT=1234
+      - HTTP_LISTENER_PORT=8085
+
   vernemq:
     image: erlio/docker-vernemq:latest
     container_name: vernemq

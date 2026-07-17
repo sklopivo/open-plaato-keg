@@ -1,5 +1,6 @@
 defmodule OpenPlaatoKeg.MqttHandler do
   require Logger
+  alias OpenPlaatoKeg.Models.KegData
 
   def init(args) do
     Logger.info("", data: inspect(args))
@@ -29,13 +30,38 @@ defmodule OpenPlaatoKeg.MqttHandler do
     :ok
   end
 
-  def publish(data) do
-    Tortoise.publish(
-      OpenPlaatoKeg.mqtt_config()[:client],
-      "#{OpenPlaatoKeg.mqtt_config()[:topic]}/#{data.id}",
-      Poison.encode!(data),
-      qos: 0,
-      retain: true
-    )
+  def publish(id, data) do
+    if OpenPlaatoKeg.mqtt_config()[:json_output] do
+      keg_all_data = KegData.get(id)
+
+      Tortoise.publish(
+        OpenPlaatoKeg.mqtt_config()[:client],
+        "#{OpenPlaatoKeg.mqtt_config()[:topic]}/#{id}",
+        Poison.encode!(keg_all_data),
+        qos: 0,
+        retain: true
+      )
+    end
+
+    if OpenPlaatoKeg.mqtt_config()[:property_output] do
+      Enum.each(data, fn {key, value} ->
+        publish_value =
+          case value do
+            value when is_binary(value) ->
+              value
+
+            value when is_map(value) ->
+              Poison.encode!(value)
+          end
+
+        Tortoise.publish(
+          OpenPlaatoKeg.mqtt_config()[:client],
+          "#{OpenPlaatoKeg.mqtt_config()[:topic]}/#{id}/#{key}",
+          publish_value,
+          qos: 0,
+          retain: true
+        )
+      end)
+    end
   end
 end

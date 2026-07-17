@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beverage Library - Open Plaato</title>
+  <style>@import url("style.css");</style>
+  <link rel="stylesheet" href="/theme.css">
+  <style>
+    .bev-list-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.6rem 0.8rem; border-radius: 6px; margin-bottom: 0.4rem;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      cursor: pointer; transition: background 0.15s;
+    }
+    .bev-list-item:hover { background: rgba(255,255,255,0.08); }
+    .bev-list-item.active { border-color: #3273dc; background: rgba(50,115,220,0.1); }
+    .bev-color-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .bev-list-left { display: flex; align-items: center; gap: 0.6rem; }
+    .bev-list-name { font-weight: 600; }
+    .bev-list-meta { font-size: 0.8rem; color: #888; }
+    .color-swatches { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+    .swatch {
+      width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+      border: 2px solid transparent; transition: border-color 0.15s, transform 0.15s;
+    }
+    .swatch:hover, .swatch.active { border-color: white; transform: scale(1.15); }
+    .batch-table tr:hover td { background: rgba(255,255,255,0.04); }
+  </style>
+</head>
+<body>
+  <div id="header_container">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMenu">
+          <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+        </a>
+      </div>
+      <div id="navbarMenu" class="navbar-menu">
+        <div class="navbar-start">
+          <a class="navbar-item" href="/">Home</a>
+          <a class="navbar-item" href="/index.html">Kegs</a>
+          <a class="navbar-item" href="/history.html">History</a>
+          <div class="navbar-item has-dropdown" id="configureDropdown">
+            <a class="navbar-link" onclick="toggleDropdown(event)">Configure</a>
+            <div class="navbar-dropdown">
+              <a class="navbar-item" href="/taplist-setup.html">Tap Setup</a>
+              <a class="navbar-item" href="/tap-handles.html">Tap Handles</a>
+              <a class="navbar-item" href="/setup.html">Scale Setup</a>
+              <a class="navbar-item" href="/dashboard-setup.html">Dashboard Setup</a>
+              <a class="navbar-item" href="/server-update.html">Server Update</a>
+              <a class="navbar-item" href="/airlock-setup.html">Airlock Setup</a>
+              <a class="navbar-item" href="/transfer-scales.html">Transfer Scales</a>
+              <a class="navbar-item" href="/beverages.html">Beverages</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container" style="padding:1.5rem 1rem 3rem;">
+    <h1 class="title is-2">Beverage Library</h1>
+    <p class="subtitle">Store and manage reusable beer/beverage recipes. Select from the library when configuring a tap.</p>
+
+    <div class="columns">
+      <!-- LEFT: beverage list -->
+      <div class="column is-4">
+        <div class="box" style="position:sticky;top:1rem;">
+          <h2 class="title is-5">Beverages</h2>
+
+          <div class="field">
+            <div class="control">
+              <input class="input is-small" type="text" id="searchInput" placeholder="Search…" oninput="filterList()" />
+            </div>
+          </div>
+
+          <div id="bevListContainer" style="max-height:50vh;overflow-y:auto;">
+            <p class="has-text-grey">Loading…</p>
+          </div>
+
+          <button class="button is-primary is-fullwidth" style="margin-top:1rem;" onclick="addNew()">
+            ＋ New Beverage
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT: edit form -->
+      <div class="column is-8">
+        <div class="box" id="editBox" style="display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <h2 class="title is-5" style="margin:0;" id="formTitle">New Beverage</h2>
+            <button class="button is-danger is-light is-small" onclick="deleteBeverage()">Delete</button>
+          </div>
+
+          <div class="columns">
+            <div class="column">
+              <div class="field">
+                <label class="label">Name <span class="has-text-grey">(required)</span></label>
+                <div class="control">
+                  <input class="input" type="text" id="bevName" placeholder="e.g. Hoppy IPA" />
+                </div>
+              </div>
+            </div>
+            <div class="column">
+              <div class="field">
+                <label class="label">Brewery</label>
+                <div class="control">
+                  <input class="input" type="text" id="bevBrewery" placeholder="e.g. Home Brew Co." />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="columns">
+            <div class="column">
+              <div class="field">
+                <label class="label">Style</label>
+                <div class="control">
+                  <input class="input" type="text" id="bevStyle" placeholder="e.g. IPA, Stout, Lager" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label">ABV %</label>
+                <div class="control">
+                  <input class="input" type="number" id="bevAbv" step="0.1" min="0" max="25" placeholder="6.5" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label">IBU</label>
+                <div class="control">
+                  <input class="input" type="number" id="bevIbu" step="1" min="0" max="300" placeholder="45" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label">Beer Color</label>
+            <div class="control">
+              <input class="input" type="text" id="bevColor" placeholder="#f5a623" style="max-width:180px;" />
+            </div>
+            <div class="color-swatches" id="colorSwatches"></div>
+          </div>
+
+          <div class="field">
+            <label class="label">Description</label>
+            <div class="control">
+              <textarea class="textarea" id="bevDescription" rows="2" placeholder="Short description…"></textarea>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label">Tasting Notes</label>
+            <div class="control">
+              <textarea class="textarea" id="bevTastingNotes" rows="2" placeholder="e.g. Citrus, pine, tropical fruits…"></textarea>
+            </div>
+          </div>
+
+          <div class="columns">
+            <div class="column is-3">
+              <div class="field">
+                <label class="label">OG</label>
+                <div class="control">
+                  <input class="input" type="text" id="bevOg" placeholder="1.060" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label">FG</label>
+                <div class="control">
+                  <input class="input" type="text" id="bevFg" placeholder="1.012" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:1.5rem;">
+            <div class="control">
+              <button class="button is-primary is-medium" onclick="saveBeverage()">Save</button>
+              <button class="button is-light" style="margin-left:0.5rem;" onclick="closeForm()">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="emptyState" style="text-align:center;padding:3rem;color:#888;">
+          <p style="font-size:1.2rem;">Select a beverage to edit, or click <strong>＋ New Beverage</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Brewfather Import ─────────────────────────── -->
+    <div class="box" style="margin-top:1.5rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"
+           onclick="toggleBrewfather()">
+        <h2 class="title is-5" style="margin:0;">Brewfather Import</h2>
+        <span id="bfToggleIcon">▼</span>
+      </div>
+
+      <div id="bfPanel" style="margin-top:1rem;">
+        <p class="help" style="margin-bottom:1rem;">
+          Import batches from your Brewfather account. Credentials are stored locally and never shared.
+        </p>
+
+        <div class="columns">
+          <div class="column">
+            <div class="field">
+              <label class="label">User ID</label>
+              <div class="control">
+                <input class="input" type="text" id="bfUserId" placeholder="Brewfather User ID" />
+              </div>
+            </div>
+          </div>
+          <div class="column">
+            <div class="field">
+              <label class="label">API Key</label>
+              <div class="control">
+                <input class="input" type="password" id="bfApiKey" placeholder="Brewfather API Key" />
+              </div>
+            </div>
+          </div>
+          <div class="column is-narrow" style="display:flex;align-items:flex-end;padding-bottom:0.75rem;">
+            <button class="button is-info" onclick="saveBrewfatherCredentials()">Save Credentials</button>
+            <span id="bfSavedIndicator" style="display:none;margin-left:0.75rem;color:#48c774;font-size:0.9rem;">
+              Credentials saved ✓
+            </span>
+          </div>
+        </div>
+
+        <div style="margin-top:0.5rem;">
+          <button class="button is-link" onclick="browseBatches()" id="bfBrowseBtn">Browse Batches</button>
+        </div>
+
+        <div id="bfBatchTable" style="margin-top:1rem;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="notification toast is-hidden"></div>
+
+  <script>
+    document.querySelectorAll('.navbar-burger').forEach(el =>
+      el.addEventListener('click', () => {
+        document.getElementById(el.dataset.target).classList.toggle('is-active');
+        el.classList.toggle('is-active');
+      })
+    );
+    function toggleDropdown(e) {
+      e.preventDefault();
+      document.getElementById('configureDropdown').classList.toggle('is-open');
+    }
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#configureDropdown'))
+        document.getElementById('configureDropdown')?.classList.remove('is-open');
+    });
+
+    const SWATCHES = [
+      '#f5e642','#f5a623','#e8721a','#c0531a','#8b3a0f',
+      '#e8c96a','#d4a843','#b08a30','#7a5c18','#4a3010',
+      '#6fb8d4','#4a90d9','#2d5fa3','#1a3a6b',
+      '#7bc47b','#4a9e4a','#2d6b2d',
+      '#e87070','#c0404a','#8b1a24',
+      '#3a2a1a','#241810','#0a0808',
+      '#f0f0f0','#c8c8d8',
+    ];
+
+    let currentId = null;
+    let allBeverages = [];
+    let bfPanelOpen = true;
+
+    function showToast(msg, type = 'info') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `notification toast is-${type}`;
+      setTimeout(() => t.classList.add('is-hidden'), 3000);
+    }
+
+    function initSwatches() {
+      const container = document.getElementById('colorSwatches');
+      container.innerHTML = '';
+      SWATCHES.forEach(c => {
+        const s = document.createElement('div');
+        s.className = 'swatch';
+        s.style.background = c;
+        s.title = c;
+        s.onclick = () => {
+          document.getElementById('bevColor').value = c;
+          document.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
+          s.classList.add('active');
+        };
+        container.appendChild(s);
+      });
+    }
+
+    function updateActiveSwatch(color) {
+      document.querySelectorAll('.swatch').forEach(s =>
+        s.classList.toggle('active', s.title === color)
+      );
+    }
+
+    document.addEventListener('input', ev => {
+      if (ev.target.id === 'bevColor') updateActiveSwatch(ev.target.value);
+    });
+
+    async function loadBeverages() {
+      const res = await fetch('/api/beverages');
+      allBeverages = await res.json();
+      renderList();
+    }
+
+    function filterList() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      renderList(q);
+    }
+
+    function renderList(filter = '') {
+      const container = document.getElementById('bevListContainer');
+      const filtered = filter
+        ? allBeverages.filter(b =>
+            (b.name || '').toLowerCase().includes(filter) ||
+            (b.style || '').toLowerCase().includes(filter) ||
+            (b.brewery || '').toLowerCase().includes(filter)
+          )
+        : allBeverages;
+
+      if (!filtered.length) {
+        container.innerHTML = '<p class="has-text-grey" style="font-size:0.9rem;">No beverages yet</p>';
+        return;
+      }
+      container.innerHTML = '';
+      filtered.forEach(bev => {
+        const item = document.createElement('div');
+        item.className = 'bev-list-item' + (bev.id === currentId ? ' active' : '');
+        item.onclick = () => editBeverage(bev.id);
+        item.innerHTML = `
+          <div class="bev-list-left">
+            <div class="bev-color-dot" style="background:${bev.color || '#c9a849'};"></div>
+            <div>
+              <div class="bev-list-name">${bev.name || 'Unnamed'}</div>
+              <div class="bev-list-meta">${bev.style || ''}${bev.abv ? ' · '+bev.abv+'%' : ''}${bev.source === 'brewfather' ? ' · BF' : ''}</div>
+            </div>
+          </div>`;
+        container.appendChild(item);
+      });
+    }
+
+    function addNew() {
+      currentId = 'bev_' + Date.now().toString(16);
+      openForm({
+        id: currentId, name: '', brewery: '', style: '', abv: '', ibu: '',
+        color: '#c9a849', description: '', tasting_notes: '', og: '', fg: '', source: 'manual'
+      });
+    }
+
+    function editBeverage(id) {
+      currentId = id;
+      const bev = allBeverages.find(b => b.id === id);
+      if (bev) openForm(bev);
+      renderList(document.getElementById('searchInput').value.toLowerCase());
+    }
+
+    function openForm(bev) {
+      document.getElementById('editBox').style.display = '';
+      document.getElementById('emptyState').style.display = 'none';
+      document.getElementById('formTitle').textContent = bev.name ? `Editing: ${bev.name}` : 'New Beverage';
+
+      document.getElementById('bevName').value         = bev.name || '';
+      document.getElementById('bevBrewery').value      = bev.brewery || '';
+      document.getElementById('bevStyle').value        = bev.style || '';
+      document.getElementById('bevAbv').value          = bev.abv || '';
+      document.getElementById('bevIbu').value          = bev.ibu || '';
+      document.getElementById('bevColor').value        = bev.color || '#c9a849';
+      document.getElementById('bevDescription').value  = bev.description || '';
+      document.getElementById('bevTastingNotes').value = bev.tasting_notes || '';
+      document.getElementById('bevOg').value           = bev.og || '';
+      document.getElementById('bevFg').value           = bev.fg || '';
+
+      updateActiveSwatch(bev.color || '#c9a849');
+
+      // If ABV is empty, compute it from OG+FG automatically.
+      if (!document.getElementById('bevAbv').value.trim()) {
+        autoCalculateAbv();
+      }
+    }
+
+    function parseFullNumber(str) {
+      const s = (str ?? '').toString().trim();
+      if (s === '') return null;
+      // Allow plain decimals (e.g. 1.050, 1.012). Avoid partial parses like "1.05x".
+      if (!/^-?\d+(\.\d+)?$/.test(s)) return null;
+      return parseFloat(s);
+    }
+
+    function autoCalculateAbv() {
+      const og = parseFullNumber(document.getElementById('bevOg').value);
+      const fg = parseFullNumber(document.getElementById('bevFg').value);
+
+      if (og == null || fg == null) {
+        document.getElementById('bevAbv').value = '';
+        return;
+      }
+
+      const abv = (og - fg) * 131.25;
+      const abvRounded = Math.round(abv * 100) / 100;
+      document.getElementById('bevAbv').value = abvRounded.toFixed(2).replace(/\.00$/, '');
+    }
+
+    // Keep ABV in sync while the user types OG/FG
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('bevOg')?.addEventListener('input', autoCalculateAbv);
+      document.getElementById('bevFg')?.addEventListener('input', autoCalculateAbv);
+    });
+
+    function closeForm() {
+      currentId = null;
+      document.getElementById('editBox').style.display = 'none';
+      document.getElementById('emptyState').style.display = '';
+      renderList(document.getElementById('searchInput').value.toLowerCase());
+    }
+
+    async function saveBeverage() {
+      const name = document.getElementById('bevName').value.trim();
+      if (!name) { showToast('Name is required', 'warning'); return; }
+
+      const body = {
+        name,
+        brewery:       document.getElementById('bevBrewery').value.trim(),
+        style:         document.getElementById('bevStyle').value.trim(),
+        abv:           document.getElementById('bevAbv').value.trim(),
+        ibu:           document.getElementById('bevIbu').value.trim(),
+        color:         document.getElementById('bevColor').value.trim() || '#c9a849',
+        description:   document.getElementById('bevDescription').value.trim(),
+        tasting_notes: document.getElementById('bevTastingNotes').value.trim(),
+        og:            document.getElementById('bevOg').value.trim(),
+        fg:            document.getElementById('bevFg').value.trim(),
+        source:        'manual',
+      };
+
+      try {
+        const res = await fetch(`/api/beverages/${currentId}`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        showToast('Saved!', 'success');
+        await loadBeverages();
+        const saved = allBeverages.find(b => b.id === currentId);
+        if (saved) document.getElementById('formTitle').textContent = `Editing: ${saved.name}`;
+        renderList(document.getElementById('searchInput').value.toLowerCase());
+      } catch (e) {
+        showToast('Save failed: ' + e.message, 'danger');
+      }
+    }
+
+    async function deleteBeverage() {
+      if (!currentId) return;
+      if (!confirm('Delete this beverage? This cannot be undone.')) return;
+      try {
+        await fetch(`/api/beverages/${currentId}/delete`, {method: 'POST'});
+        showToast('Deleted', 'success');
+        currentId = null;
+        document.getElementById('editBox').style.display = 'none';
+        document.getElementById('emptyState').style.display = '';
+        await loadBeverages();
+      } catch (e) {
+        showToast('Delete failed', 'danger');
+      }
+    }
+
+    // ── Brewfather panel ──────────────────────────────
+
+    function toggleBrewfather() {
+      bfPanelOpen = !bfPanelOpen;
+      document.getElementById('bfPanel').style.display = bfPanelOpen ? '' : 'none';
+      document.getElementById('bfToggleIcon').textContent = bfPanelOpen ? '▲' : '▼';
+    }
+
+    async function loadBrewfatherStatus() {
+      try {
+        const res = await fetch('/api/config/brewfather');
+        const data = await res.json();
+        if (data.configured) {
+          document.getElementById('bfSavedIndicator').style.display = '';
+        }
+      } catch (_) {}
+    }
+
+    async function saveBrewfatherCredentials() {
+      const user_id = document.getElementById('bfUserId').value.trim();
+      const api_key  = document.getElementById('bfApiKey').value.trim();
+
+      try {
+        const res = await fetch('/api/config/brewfather', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({user_id, api_key}),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const indicator = document.getElementById('bfSavedIndicator');
+        indicator.style.display = '';
+        showToast('Credentials saved', 'success');
+      } catch (e) {
+        showToast('Save failed: ' + e.message, 'danger');
+      }
+    }
+
+    async function browseBatches() {
+      const btn = document.getElementById('bfBrowseBtn');
+      btn.classList.add('is-loading');
+      document.getElementById('bfBatchTable').innerHTML = '';
+
+      try {
+        const res = await fetch('/api/brewfather/batches');
+        const data = await res.json();
+
+        if (!res.ok) {
+          const msg = data.error === 'no_credentials'
+            ? 'No credentials saved. Enter your Brewfather User ID and API Key above.'
+            : `Error: ${data.error}`;
+          document.getElementById('bfBatchTable').innerHTML = `<p class="has-text-danger">${msg}</p>`;
+          return;
+        }
+
+        if (!data.length) {
+          document.getElementById('bfBatchTable').innerHTML = '<p class="has-text-grey">No batches found.</p>';
+          return;
+        }
+
+        const rows = data.map(b => `
+          <tr>
+            <td>${b.name || ''}</td>
+            <td>${b.style || ''}</td>
+            <td>${b.abv != null ? b.abv + '%' : ''}</td>
+            <td><span class="tag">${b.status || ''}</span></td>
+            <td>
+              <button class="button is-small is-info" onclick="importBatch('${b.id}')">Import</button>
+            </td>
+          </tr>`).join('');
+
+        document.getElementById('bfBatchTable').innerHTML = `
+          <table class="table is-fullwidth is-hoverable batch-table">
+            <thead>
+              <tr>
+                <th>Name</th><th>Style</th><th>ABV</th><th>Status</th><th></th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+      } catch (e) {
+        document.getElementById('bfBatchTable').innerHTML = `<p class="has-text-danger">Request failed: ${e.message}</p>`;
+      } finally {
+        btn.classList.remove('is-loading');
+      }
+    }
+
+    async function importBatch(batchId) {
+      try {
+        const res = await fetch(`/api/brewfather/import/${batchId}`, {method: 'POST'});
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || res.status);
+        showToast('Imported!', 'success');
+        await loadBeverages();
+        editBeverage(data.id);
+      } catch (e) {
+        showToast('Import failed: ' + e.message, 'danger');
+      }
+    }
+
+    initSwatches();
+    loadBeverages();
+    loadBrewfatherStatus();
+  </script>
+</body>
+</html>

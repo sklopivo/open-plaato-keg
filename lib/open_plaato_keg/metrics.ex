@@ -18,77 +18,11 @@ defmodule OpenPlaatoKeg.Metrics do
     )
 
     Gauge.declare(
-      name: :plaato_keg_weight,
-      help: "Weight from Plaato Keg",
-      labels: ["id", "type", "unit"],
+      name: :plaato_keg,
+      help: "Plaato keg metrics",
+      labels: ["id", "type"],
       registry: :default
     )
-
-    Gauge.declare(
-      name: :plaato_keg_temperature,
-      help: "Temperature from Plaato Keg",
-      labels: ["id", "type", "unit"],
-      registry: :default
-    )
-  end
-
-  def publish(keg_data) do
-    if keg_data.temperature_raw do
-      Gauge.set(
-        [
-          name: :plaato_keg_temperature,
-          labels: [keg_data.id, "raw", keg_data.temperature_raw_unit || ""]
-        ],
-        keg_data.temperature_raw
-      )
-
-      Gauge.set(
-        [
-          name: :plaato_keg_temperature,
-          labels: [keg_data.id, "calibrate", keg_data.temperature_raw_unit || ""]
-        ],
-        keg_data.temperature_calibrate
-      )
-
-      Gauge.set(
-        [
-          name: :plaato_keg_temperature,
-          labels: [keg_data.id, "current", keg_data.temperature_raw_unit || ""]
-        ],
-        keg_data.temperature
-      )
-    end
-
-    if keg_data.weight_raw do
-      Gauge.set(
-        [
-          name: :plaato_keg_weight,
-          labels: [keg_data.id, "raw", keg_data.weight_raw_unit || ""]
-        ],
-        keg_data.weight_raw
-      )
-
-      Gauge.set(
-        [
-          name: :plaato_keg_weight,
-          labels: [keg_data.id, "calibrate", keg_data.weight_raw_unit || ""]
-        ],
-        keg_data.weight_calibrate
-      )
-
-      Gauge.set(
-        [
-          name: :plaato_keg_weight,
-          labels: [keg_data.id, "current", keg_data.weight_raw_unit || ""]
-        ],
-        keg_data.weight
-      )
-    end
-  rescue
-    error ->
-      Logger.error("Failed to publish metrics",
-        data: inspect([keg_data: keg_data, error: error], limit: :infinity)
-      )
   end
 
   def scrape_data(format \\ :prometheus_text_format, registry \\ :default) do
@@ -110,5 +44,36 @@ defmodule OpenPlaatoKeg.Metrics do
     )
 
     scrape
+  end
+
+  def publish(id, keg_data) do
+    Enum.each(keg_data, fn {key, value} ->
+      record_metric(id, key, value)
+    end)
+  rescue
+    error ->
+      Logger.error("Failed to publish metrics",
+        data: inspect([keg_data: keg_data, error: error], limit: :infinity)
+      )
+  end
+
+  defp record_metric(id, key, value) when is_binary(value) do
+    case Float.parse(value) do
+      {float_value, ""} ->
+        Gauge.set(
+          [
+            name: :plaato_keg,
+            labels: [id, key]
+          ],
+          float_value
+        )
+
+      _ ->
+        :skip
+    end
+  end
+
+  defp record_metric(_id, _key, _value) do
+    :skip
   end
 end

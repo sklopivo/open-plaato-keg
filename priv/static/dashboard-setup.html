@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Setup - Open Plaato</title>
+    <style>
+      @import url("style.css");
+    </style>
+    <link rel="stylesheet" href="/theme.css">
+    <style>
+      .color-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+      .color-row input[type="color"] { width: 44px; height: 38px; border: none; border-radius: 6px; padding: 2px; cursor: pointer; background: transparent; }
+      .color-row input[type="text"] { max-width: 110px; font-family: var(--font-mono, monospace); }
+      .preview-area {
+        border-radius: 12px;
+        padding: 1.5rem;
+        min-height: 320px;
+        background-size: cover;
+        background-position: center;
+        transition: background 0.3s;
+      }
+      .preview-card {
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        transition: background 0.3s, color 0.3s;
+      }
+      .preview-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; }
+      .preview-card-label { font-weight: 600; font-size: 1.05rem; }
+      .preview-card-meta { font-size: 0.75rem; opacity: 0.5; margin-top: 0.15rem; }
+      .preview-card-temp { font-size: 0.85rem; }
+      .preview-card-vol { text-align: center; padding: 0.75rem 0; }
+      .preview-card-vol .vol-num { font-size: 2.8rem; font-weight: 700; }
+      .preview-card-vol .vol-unit { font-size: 1.1rem; margin-left: 0.2rem; }
+      .preview-bar-track { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); overflow: hidden; }
+      .preview-bar-fill { height: 100%; width: 65%; border-radius: 4px; transition: background 0.3s; }
+      .preview-bar-label { font-size: 0.72rem; text-align: right; margin-top: 0.25rem; opacity: 0.55; }
+      .preview-tap-row {
+        border-radius: 12px;
+        padding: 1rem;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        transition: background 0.3s;
+      }
+      .preview-tap-badge {
+        width: 52px; height: 52px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 1.1rem; flex-shrink: 0;
+        transition: background 0.3s, color 0.3s;
+      }
+      .preview-tap-copy { min-width: 0; }
+      .preview-tap-name { font-weight: 600; font-size: 1rem; }
+      .preview-tap-sub { font-size: 0.78rem; opacity: 0.55; }
+      .preview-tap-desc { font-size: 0.8rem; opacity: 0.75; margin-top: 0.35rem; line-height: 1.5; }
+      .bg-image-preview { max-width: 100%; max-height: 160px; border-radius: 8px; display: block; margin-bottom: 0.75rem; object-fit: cover; }
+      .section-card { margin-bottom: 1.5rem; }
+      input[type="range"] { width: 100%; accent-color: var(--amber-400, #f59e0b); }
+    </style>
+  </head>
+  <body>
+    <div id="header_container">
+      <nav class="navbar" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+          <a
+            role="button"
+            class="navbar-burger burger"
+            aria-label="menu"
+            aria-expanded="false"
+            data-target="navbarMenu"
+          >
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+          </a>
+        </div>
+
+        <div id="navbarMenu" class="navbar-menu">
+          <div class="navbar-start">
+            <a class="navbar-item" href="/">Home</a>
+            <a class="navbar-item" href="/index.html">Kegs</a>
+            <a class="navbar-item" href="/history.html">History</a>
+            <div class="navbar-item has-dropdown" id="configureDropdown">
+              <a class="navbar-link" onclick="toggleDropdown(event)">Configure</a>
+              <div class="navbar-dropdown">
+                <a class="navbar-item" href="/taplist-setup.html">Tap Setup</a>
+                <a class="navbar-item" href="/tap-handles.html">Tap Handles</a>
+                <a class="navbar-item" href="/setup.html">Scale Setup</a>
+                <a class="navbar-item is-active" href="/dashboard-setup.html">Dashboard Setup</a>
+                <a class="navbar-item" href="/server-update.html">Server Update</a>
+                <a class="navbar-item" href="/airlock-setup.html">Airlock Setup</a>
+                <a class="navbar-item" href="/transfer-scales.html">Transfer Scales</a>
+                <a class="navbar-item" href="/beverages.html">Beverages</a>
+              </div>
+            </div>
+          </div>
+          <div class="navbar-end">
+            <span class="navbar-item" id="serverVersion" style="font-size:0.75rem;opacity:0.5;"></span>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <div id="page_container" class="container pageEntry">
+      <section class="section">
+        <div class="container">
+          <h1 class="title is-2">Dashboard Setup</h1>
+          <p class="subtitle">Customize colors, fonts, and background across all pages</p>
+
+          <div class="columns is-variable is-6">
+            <!-- ── Left column: settings ── -->
+            <div class="column is-5">
+
+              <!-- Colors -->
+              <div class="card section-card">
+                <div class="card-header">
+                  <p class="card-header-title">Colors</p>
+                </div>
+                <div class="card-content">
+                  <div class="field">
+                    <label class="label">Accent Color</label>
+                    <div class="color-row">
+                      <input type="color" id="accentColor" value="#f59e0b">
+                      <input type="text" class="input" id="accentHex" value="#f59e0b" maxlength="7" placeholder="#f59e0b">
+                      <span class="tag is-dark">Buttons · borders · highlights</span>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label class="label">Page Background</label>
+                    <div class="color-row">
+                      <input type="color" id="bgColor" value="#020617">
+                      <input type="text" class="input" id="bgHex" value="#020617" maxlength="7" placeholder="#020617">
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label class="label">Card Background</label>
+                    <div class="color-row">
+                      <input type="color" id="cardBg" value="#0f172a">
+                      <input type="text" class="input" id="cardBgHex" value="#0f172a" maxlength="7" placeholder="#0f172a">
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label class="label">Text Color</label>
+                    <div class="color-row">
+                      <input type="color" id="textColor" value="#dfdfdf">
+                      <input type="text" class="input" id="textHex" value="#dfdfdf" maxlength="7" placeholder="#dfdfdf">
+                    </div>
+                  </div>
+
+                  <div class="field" style="margin-top: 1.25rem;">
+                    <div class="control">
+                      <button class="button is-light is-small" id="resetColorsBtn">Reset to defaults</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Typography -->
+              <div class="card section-card">
+                <div class="card-header">
+                  <p class="card-header-title">Typography</p>
+                </div>
+                <div class="card-content">
+                  <div class="field">
+                    <label class="label">Font Family</label>
+                    <div class="control">
+                      <div class="select is-fullwidth">
+                        <select id="fontFamily">
+                          <option value="Outfit">Outfit (Default)</option>
+                          <option value="Inter">Inter</option>
+                          <option value="Roboto">Roboto</option>
+                          <option value="Nunito">Nunito</option>
+                          <option value="Ubuntu">Ubuntu</option>
+                          <option value="Lato">Lato</option>
+                          <option value="Space Grotesk">Space Grotesk</option>
+                          <option value="Poppins">Poppins</option>
+                          <option value="Montserrat">Montserrat</option>
+                          <option value="Oswald">Oswald</option>
+                          <option value="Merriweather Sans">Merriweather Sans</option>
+                          <option value="Fira Sans">Fira Sans</option>
+                          <option value="System">System Default</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label class="label">Tap List Title Font</label>
+                    <div class="control">
+                      <div class="select is-fullwidth">
+                        <select id="taplistTitleFont">
+                          <option value="">Use Tap List Default</option>
+                          <option value="Outfit">Outfit</option>
+                          <option value="Inter">Inter</option>
+                          <option value="Roboto">Roboto</option>
+                          <option value="Nunito">Nunito</option>
+                          <option value="Ubuntu">Ubuntu</option>
+                          <option value="Lato">Lato</option>
+                          <option value="Space Grotesk">Space Grotesk</option>
+                          <option value="Playfair Display">Playfair Display</option>
+                          <option value="Merriweather">Merriweather</option>
+                          <option value="Bebas Neue">Bebas Neue</option>
+                          <option value="Cinzel">Cinzel</option>
+                          <option value="Cormorant Garamond">Cormorant Garamond</option>
+                          <option value="Libre Baskerville">Libre Baskerville</option>
+                          <option value="Montserrat">Montserrat</option>
+                          <option value="Oswald">Oswald</option>
+                          <option value="System">System Default</option>
+                        </select>
+                      </div>
+                    </div>
+                    <p class="help">Used for tap names and the tap list header.</p>
+                  </div>
+
+                  <div class="field">
+                    <label class="label">Tap List Description Font</label>
+                    <div class="control">
+                      <div class="select is-fullwidth">
+                        <select id="taplistBodyFont">
+                          <option value="">Use Global Font</option>
+                          <option value="Outfit">Outfit</option>
+                          <option value="Inter">Inter</option>
+                          <option value="Roboto">Roboto</option>
+                          <option value="Nunito">Nunito</option>
+                          <option value="Ubuntu">Ubuntu</option>
+                          <option value="Lato">Lato</option>
+                          <option value="Space Grotesk">Space Grotesk</option>
+                          <option value="Merriweather">Merriweather</option>
+                          <option value="Source Sans 3">Source Sans 3</option>
+                          <option value="Poppins">Poppins</option>
+                          <option value="Montserrat">Montserrat</option>
+                          <option value="Open Sans">Open Sans</option>
+                          <option value="Fira Sans">Fira Sans</option>
+                          <option value="Work Sans">Work Sans</option>
+                          <option value="System">System Default</option>
+                        </select>
+                      </div>
+                    </div>
+                    <p class="help">Used for brewery, description, and tasting notes on the tap list.</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Home Page -->
+              <div class="card section-card">
+                <div class="card-header">
+                  <p class="card-header-title">Home Page</p>
+                </div>
+                <div class="card-content">
+                  <div class="field">
+                    <label class="label">Default page when opening the server</label>
+                    <div class="control">
+                      <label class="radio" style="margin-right: 1.5rem;">
+                        <input type="radio" name="homePage" value="taplist" id="homePageTaplist" checked>
+                        Tap List
+                      </label>
+                      <label class="radio">
+                        <input type="radio" name="homePage" value="kegs" id="homePageKegs">
+                        Kegs
+                      </label>
+                    </div>
+                    <p class="help">The "Home" nav link and the root URL (/) both follow this setting.</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Time Format -->
+              <div class="card section-card">
+                <div class="card-header">
+                  <p class="card-header-title">Time Format</p>
+                </div>
+                <div class="card-content">
+                  <div class="field">
+                    <label class="label">Clock and timestamp display</label>
+                    <div class="control">
+                      <label class="radio" style="margin-right: 1.5rem;">
+                        <input type="radio" name="timeFormat" value="12h" id="timeFormat12h" checked>
+                        12-hour (1:30 PM)
+                      </label>
+                      <label class="radio">
+                        <input type="radio" name="timeFormat" value="24h" id="timeFormat24h">
+                        24-hour (13:30)
+                      </label>
+                    </div>
+                    <p class="help">Applies to the live clock on the tap list and history chart timestamps.</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Background Image -->
+              <div class="card section-card">
+                <div class="card-header">
+                  <p class="card-header-title">Background Image</p>
+                </div>
+                <div class="card-content">
+                  <div id="currentBgWrap" style="display:none;">
+                    <img id="currentBgThumb" src="/uploads/background" class="bg-image-preview" alt="Current background">
+                  </div>
+
+                  <div class="field">
+                    <div class="control" style="display:flex; gap: 0.5rem; flex-wrap: wrap;">
+                      <label class="button">
+                        Upload Image
+                        <input type="file" id="bgImageInput" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;">
+                      </label>
+                      <button id="removeBgBtn" class="button is-danger is-light" style="display:none;">Remove</button>
+                    </div>
+                    <p class="help">JPG, PNG, WebP or GIF. Displayed as full-page background on all pages.</p>
+                  </div>
+
+                  <div class="field" id="opacityWrap" style="display:none;">
+                    <label class="label">
+                      Dark overlay — <span id="opacityLabel">15%</span>
+                    </label>
+                    <input type="range" id="bgOpacity" min="0" max="80" value="15">
+                    <p class="help">Darkens the image so text stays readable.</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Save actions -->
+              <div class="field is-grouped">
+                <div class="control">
+                  <button class="button is-primary" id="saveBtn">Save Changes</button>
+                </div>
+                <div class="control">
+                  <button class="button is-light" id="resetAllBtn">Reset All Defaults</button>
+                </div>
+              </div>
+              <p id="saveMsg" style="margin-top:0.6rem; font-size:0.85rem; display:none;"></p>
+            </div>
+
+            <!-- ── Right column: live preview ── -->
+            <div class="column is-7">
+              <div class="card" style="position: sticky; top: 1rem;">
+                <div class="card-header">
+                  <p class="card-header-title">Live Preview</p>
+                </div>
+                <div class="card-content" style="padding: 0;">
+                  <div class="preview-area" id="previewArea">
+
+                    <!-- Mock keg card -->
+                    <div class="preview-card" id="previewCard">
+                      <div class="preview-card-header">
+                        <div>
+                          <div class="preview-card-label" id="pvLabel">Keg 1 · IPA</div>
+                          <div class="preview-card-meta">West Coast IPA · 6.8% ABV</div>
+                        </div>
+                        <div class="preview-card-temp" id="pvTemp">● 39.0°F</div>
+                      </div>
+                      <div class="preview-card-vol">
+                        <span class="vol-num" id="pvVol">4.2</span><span class="vol-unit">L</span>
+                      </div>
+                      <div>
+                        <div class="preview-bar-track">
+                          <div class="preview-bar-fill" id="pvBar"></div>
+                        </div>
+                        <div class="preview-bar-label">65.0% remaining</div>
+                      </div>
+                    </div>
+
+                    <!-- Mock tap list row -->
+                    <div class="preview-tap-row" id="previewTapRow">
+                      <div class="preview-tap-badge" id="pvBadge">1</div>
+                      <div class="preview-tap-copy">
+                        <div class="preview-tap-name" id="pvTapName">Pale Ale</div>
+                        <div class="preview-tap-sub">Homebrew · 5.4% ABV · 32 IBU</div>
+                        <div class="preview-tap-desc" id="pvTapDesc">Bright citrus, soft malt, and a clean finish.</div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      // ── Defaults ────────────────────────────────────────
+      const DEFAULTS = {
+        accent_color: '#f59e0b',
+        bg_color:     '#020617',
+        card_bg:      '#0f172a',
+        text_color:   '#dfdfdf',
+        font_family:  'Outfit',
+        taplist_title_font: '',
+        taplist_body_font: '',
+        bg_image:     false,
+        bg_opacity:   15
+      };
+
+      let hasBgImage = false;
+
+      // ── Colour picker ↔ hex text sync ───────────────────
+      function syncPair(pickerId, hexId) {
+        const picker = document.getElementById(pickerId);
+        const hex    = document.getElementById(hexId);
+        picker.addEventListener('input', () => { hex.value = picker.value; updatePreview(); });
+        hex.addEventListener('input', () => {
+          if (/^#[0-9a-fA-F]{6}$/.test(hex.value)) {
+            picker.value = hex.value;
+            updatePreview();
+          }
+        });
+      }
+      syncPair('accentColor', 'accentHex');
+      syncPair('bgColor',     'bgHex');
+      syncPair('cardBg',      'cardBgHex');
+      syncPair('textColor',   'textHex');
+
+      document.getElementById('fontFamily').addEventListener('change', updatePreview);
+      document.getElementById('taplistTitleFont').addEventListener('change', updatePreview);
+      document.getElementById('taplistBodyFont').addEventListener('change', updatePreview);
+
+      // ── Opacity slider ───────────────────────────────────
+      const opacitySlider = document.getElementById('bgOpacity');
+      opacitySlider.addEventListener('input', () => {
+        document.getElementById('opacityLabel').textContent = opacitySlider.value + '%';
+        updatePreview();
+      });
+
+      // ── Preview update ───────────────────────────────────
+      function updatePreview() {
+        const accent  = document.getElementById('accentHex').value  || DEFAULTS.accent_color;
+        const bg      = document.getElementById('bgHex').value      || DEFAULTS.bg_color;
+        const cardBg  = document.getElementById('cardBgHex').value  || DEFAULTS.card_bg;
+        const text    = document.getElementById('textHex').value    || DEFAULTS.text_color;
+        const opacity = parseInt(opacitySlider.value) / 100;
+        const font    = document.getElementById('fontFamily').value;
+        const taplistTitleFont = document.getElementById('taplistTitleFont').value;
+        const taplistBodyFont = document.getElementById('taplistBodyFont').value;
+
+        const pa = document.getElementById('previewArea');
+        const pc = document.getElementById('previewCard');
+        const pt = document.getElementById('previewTapRow');
+        const badge = document.getElementById('pvBadge');
+        const tapName = document.getElementById('pvTapName');
+        const tapDesc = document.getElementById('pvTapDesc');
+
+        // Area background
+        if (hasBgImage) {
+          const overlay = `rgba(0,0,0,${opacity})`;
+          pa.style.backgroundImage = `linear-gradient(${overlay}, ${overlay}), url('/uploads/background')`;
+          pa.style.backgroundSize  = 'cover';
+        } else {
+          pa.style.backgroundImage = 'none';
+          pa.style.backgroundColor = bg;
+        }
+
+        // Card
+        pc.style.backgroundColor = cardBg;
+        pc.style.color = text;
+        document.getElementById('pvBar').style.backgroundColor = accent;
+
+        // Tap row
+        pt.style.backgroundColor = cardBg;
+        pt.style.color = text;
+        badge.style.backgroundColor = accent;
+        badge.style.color = bg;
+
+        // Font
+        const fontStack = font === 'System'
+          ? '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+          : `"${font}", -apple-system, BlinkMacSystemFont, sans-serif`;
+        const tapTitleStack = !taplistTitleFont
+          ? 'Georgia, "Times New Roman", serif'
+          : taplistTitleFont === 'System'
+            ? '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+            : `"${taplistTitleFont}", -apple-system, BlinkMacSystemFont, sans-serif`;
+        const tapBodyStack = !taplistBodyFont
+          ? fontStack
+          : taplistBodyFont === 'System'
+            ? '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+            : `"${taplistBodyFont}", -apple-system, BlinkMacSystemFont, sans-serif`;
+        pa.style.fontFamily = fontStack;
+        tapName.style.fontFamily = tapTitleStack;
+        tapDesc.style.fontFamily = tapBodyStack;
+      }
+
+      // ── Background image upload ──────────────────────────
+      document.getElementById('bgImageInput').addEventListener('change', async function() {
+        if (!this.files[0]) return;
+        const fd = new FormData();
+        fd.append('image', this.files[0]);
+        try {
+          const res = await fetch('/api/uploads/background', { method: 'POST', body: fd });
+          if (res.ok) {
+            hasBgImage = true;
+            showBgPreview();
+            updatePreview();
+          } else {
+            const j = await res.json().catch(() => ({}));
+            alert('Upload failed: ' + (j.error || res.status));
+          }
+        } catch (e) {
+          alert('Upload error: ' + e.message);
+        }
+      });
+
+      document.getElementById('removeBgBtn').addEventListener('click', async () => {
+        await fetch('/api/uploads/background', { method: 'DELETE' });
+        hasBgImage = false;
+        hideBgPreview();
+        // Also clear bg_image flag in saved theme
+        const theme = currentTheme();
+        theme.bg_image = false;
+        await fetch('/api/config/theme', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(theme) });
+        updatePreview();
+      });
+
+      function showBgPreview() {
+        const wrap = document.getElementById('currentBgWrap');
+        const thumb = document.getElementById('currentBgThumb');
+        thumb.src = '/uploads/background?' + Date.now();
+        wrap.style.display = '';
+        document.getElementById('removeBgBtn').style.display = '';
+        document.getElementById('opacityWrap').style.display = '';
+      }
+
+      function hideBgPreview() {
+        document.getElementById('currentBgWrap').style.display = 'none';
+        document.getElementById('removeBgBtn').style.display = 'none';
+        document.getElementById('opacityWrap').style.display = 'none';
+      }
+
+      // ── Reset buttons ────────────────────────────────────
+      document.getElementById('resetColorsBtn').addEventListener('click', () => {
+        document.getElementById('accentColor').value = DEFAULTS.accent_color;
+        document.getElementById('accentHex').value   = DEFAULTS.accent_color;
+        document.getElementById('bgColor').value     = DEFAULTS.bg_color;
+        document.getElementById('bgHex').value       = DEFAULTS.bg_color;
+        document.getElementById('cardBg').value      = DEFAULTS.card_bg;
+        document.getElementById('cardBgHex').value   = DEFAULTS.card_bg;
+        document.getElementById('textColor').value   = DEFAULTS.text_color;
+        document.getElementById('textHex').value     = DEFAULTS.text_color;
+        updatePreview();
+      });
+
+      document.getElementById('resetAllBtn').addEventListener('click', async () => {
+        if (!confirm('Reset all theme settings to defaults?')) return;
+        await Promise.all([
+          fetch('/api/config/theme', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }),
+          fetch('/api/config/home-page', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ home_page: 'taplist' }) })
+        ]);
+        location.reload();
+      });
+
+      // ── Read current form state ──────────────────────────
+      function currentTheme() {
+        return {
+          accent_color: document.getElementById('accentHex').value,
+          bg_color:     document.getElementById('bgHex').value,
+          card_bg:      document.getElementById('cardBgHex').value,
+          text_color:   document.getElementById('textHex').value,
+          font_family:  document.getElementById('fontFamily').value,
+          taplist_title_font: document.getElementById('taplistTitleFont').value,
+          taplist_body_font: document.getElementById('taplistBodyFont').value,
+          bg_image:     hasBgImage,
+          bg_opacity:   parseInt(opacitySlider.value)
+        };
+      }
+
+      // ── Save ─────────────────────────────────────────────
+      document.getElementById('saveBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('saveBtn');
+        const msg = document.getElementById('saveMsg');
+        btn.classList.add('is-loading');
+        try {
+          const homePage = document.querySelector('input[name="homePage"]:checked')?.value || 'taplist';
+          const timeFormat = document.querySelector('input[name="timeFormat"]:checked')?.value || '12h';
+          await Promise.all([
+            fetch('/api/config/home-page', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ home_page: homePage })
+            }),
+            fetch('/api/config/time-format', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ time_format: timeFormat })
+            })
+          ]);
+          const res = await fetch('/api/config/theme', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(currentTheme())
+          });
+          if (res.ok) {
+            msg.textContent = 'Saved! Reload any open page to see changes.';
+            msg.style.color = '#22c55e';
+          } else {
+            msg.textContent = 'Save failed.';
+            msg.style.color = '#ef4444';
+          }
+        } catch (e) {
+          msg.textContent = 'Error: ' + e.message;
+          msg.style.color = '#ef4444';
+        }
+        btn.classList.remove('is-loading');
+        msg.style.display = '';
+        setTimeout(() => { msg.style.display = 'none'; }, 4000);
+      });
+
+      // ── Load saved theme on page open ────────────────────
+      async function loadTheme() {
+        try {
+          const hp = await fetch('/api/config/home-page').then(r => r.json());
+          document.querySelector(`input[name="homePage"][value="${hp.home_page || 'taplist'}"]`).checked = true;
+        } catch (_) {}
+
+        try {
+          const tf = await fetch('/api/config/time-format').then(r => r.json());
+          document.querySelector(`input[name="timeFormat"][value="${tf.time_format || '12h'}"]`).checked = true;
+        } catch (_) {}
+
+        try {
+          const t = await fetch('/api/config/theme').then(r => r.json());
+
+          if (t.accent_color) {
+            document.getElementById('accentColor').value = t.accent_color;
+            document.getElementById('accentHex').value   = t.accent_color;
+          }
+          if (t.bg_color) {
+            document.getElementById('bgColor').value = t.bg_color;
+            document.getElementById('bgHex').value   = t.bg_color;
+          }
+          if (t.card_bg) {
+            document.getElementById('cardBg').value    = t.card_bg;
+            document.getElementById('cardBgHex').value = t.card_bg;
+          }
+          if (t.text_color) {
+            document.getElementById('textColor').value = t.text_color;
+            document.getElementById('textHex').value   = t.text_color;
+          }
+          if (t.font_family) {
+            document.getElementById('fontFamily').value = t.font_family;
+          }
+          if (t.taplist_title_font != null) {
+            document.getElementById('taplistTitleFont').value = t.taplist_title_font;
+          }
+          if (t.taplist_body_font != null) {
+            document.getElementById('taplistBodyFont').value = t.taplist_body_font;
+          }
+          if (t.bg_opacity != null) {
+            opacitySlider.value = t.bg_opacity;
+            document.getElementById('opacityLabel').textContent = t.bg_opacity + '%';
+          }
+          if (t.bg_image) {
+            hasBgImage = true;
+            showBgPreview();
+          }
+        } catch (_) {}
+
+        // Check if background image actually exists on server
+        try {
+          const r = await fetch('/uploads/background', { method: 'HEAD' });
+          if (r.ok && !hasBgImage) {
+            hasBgImage = true;
+            showBgPreview();
+          }
+        } catch (_) {}
+
+        updatePreview();
+      }
+
+      // ── Navbar helpers ───────────────────────────────────
+      document.querySelectorAll('.navbar-burger').forEach(el =>
+        el.addEventListener('click', () => {
+          document.getElementById(el.dataset.target).classList.toggle('is-active');
+          el.classList.toggle('is-active');
+        })
+      );
+      function toggleDropdown(e) {
+        e.preventDefault();
+        document.getElementById('configureDropdown').classList.toggle('is-open');
+      }
+      document.addEventListener('click', e => {
+        if (!e.target.closest('#configureDropdown'))
+          document.getElementById('configureDropdown')?.classList.remove('is-open');
+      });
+
+      // ── Server version ───────────────────────────────────
+      fetch('/api/alive').then(r => r.json()).then(d => {
+        const el = document.getElementById('serverVersion');
+        if (el && d.version) el.textContent = 'v' + d.version;
+      }).catch(() => {});
+
+      loadTheme();
+    </script>
+  </body>
+</html>

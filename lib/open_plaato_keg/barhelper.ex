@@ -10,15 +10,15 @@ defmodule OpenPlaatoKeg.BarHelper do
     {:ok, state}
   end
 
-  def publish(data) do
-    GenServer.cast(__MODULE__, {:keg_data, data})
+  def publish(id, data) do
+    GenServer.cast(__MODULE__, {:keg_data, id, data})
   end
 
-  def handle_cast({:keg_data, keg_data}, state) do
-    keg_monitor_id = state.config[:configuration][keg_data.id]
+  def handle_cast({:keg_data, id, data}, state) do
+    keg_monitor_id = state.config[:configuration][id]
 
-    if keg_monitor_id != nil && keg_data.weight do
-      send_data_to_barhelper(keg_data.weight, keg_monitor_id, state.config)
+    if keg_monitor_id != nil && data[:amount_left] do
+      send_data_to_barhelper(data[:amount_left], keg_monitor_id, state.config)
     end
 
     {:noreply, state}

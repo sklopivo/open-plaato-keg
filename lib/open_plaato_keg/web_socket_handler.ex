@@ -1,4 +1,8 @@
 defmodule OpenPlaatoKeg.WebSocketHandler do
+  alias OpenPlaatoKeg.Models.AirlockData
+  alias OpenPlaatoKeg.Models.KegData
+  alias OpenPlaatoKeg.Models.TransferScaleData
+
   def init(state) do
     Registry.register(OpenPlaatoKeg.WebSocketConnectionRegistry, "websocket_clients", self())
     {:ok, state}
@@ -13,15 +17,58 @@ defmodule OpenPlaatoKeg.WebSocketHandler do
     :ok
   end
 
-  def publish(message) do
-    json_message = Poison.encode!(message)
+  def publish(id, _data) do
+    keg_all_data = KegData.get(id)
 
     Registry.dispatch(
       OpenPlaatoKeg.WebSocketConnectionRegistry,
       "websocket_clients",
       fn entries ->
         for {pid, _} <- entries do
-          send(pid, {:broadcast, json_message})
+          send(pid, {:broadcast, Poison.encode!(keg_all_data)})
+        end
+      end
+    )
+  end
+
+  def publish_airlock(id, _data) do
+    airlock_data = AirlockData.get(id)
+    message = Poison.encode!(%{type: "airlock", data: airlock_data})
+
+    Registry.dispatch(
+      OpenPlaatoKeg.WebSocketConnectionRegistry,
+      "websocket_clients",
+      fn entries ->
+        for {pid, _} <- entries do
+          send(pid, {:broadcast, message})
+        end
+      end
+    )
+  end
+
+  def broadcast_keg_removed(id) do
+    message = Poison.encode!(%{type: "keg_removed", id: id})
+
+    Registry.dispatch(
+      OpenPlaatoKeg.WebSocketConnectionRegistry,
+      "websocket_clients",
+      fn entries ->
+        for {pid, _} <- entries do
+          send(pid, {:broadcast, message})
+        end
+      end
+    )
+  end
+
+  def publish_transfer_scale(id) do
+    scale_data = TransferScaleData.get(id)
+    message = Poison.encode!(%{type: "transfer_scale", data: scale_data})
+    Registry.dispatch(
+      OpenPlaatoKeg.WebSocketConnectionRegistry,
+      "websocket_clients",
+      fn entries ->
+        for {pid, _} <- entries do
+          send(pid, {:broadcast, message})
         end
       end
     )
